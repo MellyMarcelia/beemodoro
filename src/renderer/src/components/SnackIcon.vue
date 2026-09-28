@@ -6,8 +6,11 @@ import flowerImg from '../assets/snacks/snack-flower.webp'
 import honeyJarImg from '../assets/snacks/snack-honey-jar.webp'
 import { prepareSnackDragImage } from '../snackDragImage'
 
+// Just the picture for one snack. Once it loads, we also prep its drag
+// preview (see snackDragImage.ts).
 defineProps<{ snack: SnackType }>()
 
+// Which picture goes with which snack.
 const imageForSnack: Record<SnackType, string> = {
   pollen: pollenImg,
   'honey-drop': honeyDropImg,

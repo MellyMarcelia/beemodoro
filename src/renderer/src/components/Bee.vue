@@ -7,6 +7,7 @@ import beeHappy2 from '../assets/bee/bee-happy-2.webp'
 import beeSad from '../assets/bee/bee-sad.webp'
 import beeScared from '../assets/bee/bee-scared.webp'
 
+// The bee mascot: shows a different animation + speech bubble depending on its mood.
 const props = defineProps<{ mood: BeeMood }>()
 
 // Every mood that can actually render the Bee component has a matching GIF.
@@ -22,6 +23,7 @@ const assetForMood: Partial<Record<BeeMood, string>> = {
 
 const asset = computed(() => assetForMood[props.mood] ?? null)
 
+// What the bee says in its speech bubble for each mood.
 const moodText: Record<BeeMood, string> = {
   idle: 'ready!',
   focus: 'buzz buzz...',
@@ -34,6 +36,7 @@ const moodText: Record<BeeMood, string> = {
 
 <template>
   <div class="bee-area">
+    <!-- :key makes the GIF restart from the beginning whenever the mood changes -->
     <img v-if="asset" :key="asset" :src="asset" class="bee-gif" :class="mood" alt="" />
 
     <div class="speech-bubble">

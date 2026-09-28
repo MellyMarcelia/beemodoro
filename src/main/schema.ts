@@ -3,6 +3,8 @@
 // touching Electron's app.getPath. Same pattern as Todobee.
 import type Database from 'better-sqlite3'
 
+// Two tables: `sessions` (one row per focus session) and `settings` (a simple
+// name -> value list). "IF NOT EXISTS" means it's fine to run this every launch.
 export function createSchema(db: Database.Database): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS sessions (

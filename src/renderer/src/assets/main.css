@@ -1,6 +1,8 @@
+/* The one stylesheet the app loads: pulls in the colours/basics and the pixel fonts. */
 @import './base.css';
 @import './fonts.css';
 
+/* Let the app stretch to fill the whole window. */
 html,
 body,
 #app {

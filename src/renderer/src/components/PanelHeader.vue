@@ -1,4 +1,6 @@
 <script setup lang="ts">
+// The title strip at the top of each panel: coloured dot, label, an optional
+// progress bar, and a slot on the right for a button (like "Hive").
 import { computed, ref, watch } from 'vue'
 
 const props = defineProps<{
@@ -10,6 +12,7 @@ const props = defineProps<{
   progressColor?: string
 }>()
 
+// Keeps the progress between 0 and 1 so the bar never overflows.
 const clamped = computed(() => Math.min(1, Math.max(0, props.progress ?? 0)))
 
 // Animate forward progress smoothly, but jump straight back when the bar

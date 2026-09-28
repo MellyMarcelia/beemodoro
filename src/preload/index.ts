@@ -2,6 +2,10 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import type { Session, NewSession, Settings, VaultStatus, SnackType, Stats } from '../shared/types'
 
+// The preload is the go-between: the screen can't touch the database or the
+// file system directly, so it calls these functions (window.api.whatever),
+// and each one passes the message along to the matching handler in main/index.ts.
+
 // Custom APIs for renderer
 const api = {
   // Settings / Obsidian vault folder.

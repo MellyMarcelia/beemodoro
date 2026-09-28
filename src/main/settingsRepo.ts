@@ -6,6 +6,8 @@ import { existsSync } from 'fs'
 import type { Settings, SnackType, VaultStatus } from '../shared/types'
 import { DEFAULT_SNACK_DURATIONS, DEFAULT_BREAK_MINUTES, SNACK_ORDER } from '../shared/types'
 
+// The names each setting is saved under. Snack durations get one key per
+// snack, like 'snackDuration:pollen'.
 const VAULT_PATH_KEY = 'vaultPath'
 const BREAK_MINUTES_KEY = 'breakMinutes'
 const SNACK_DURATION_KEY_PREFIX = 'snackDuration:'
@@ -14,11 +16,13 @@ interface SettingRow {
   value: string | null
 }
 
+// Reads one setting by name (null if it was never saved).
 function getSetting(db: Database.Database, key: string): string | null {
   const row = db.prepare<[string], SettingRow>('SELECT value FROM settings WHERE key = ?').get(key)
   return row?.value ?? null
 }
 
+// Saves one setting. If it already exists, it just overwrites the old value.
 function setSetting(db: Database.Database, key: string, value: string): void {
   db.prepare(
     'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value'

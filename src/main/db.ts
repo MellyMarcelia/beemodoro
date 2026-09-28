@@ -5,6 +5,7 @@ import { app } from 'electron'
 import { join } from 'path'
 import { createSchema } from './schema'
 
+// We only ever open the database once and reuse it after that.
 let db: Database.Database | null = null
 
 /**
@@ -16,6 +17,7 @@ export function getDb(): Database.Database {
 
   const dbPath = join(app.getPath('userData'), 'beemodoro.db')
   db = new Database(dbPath)
+  // WAL mode = faster, safer writes. Pretty standard SQLite setting.
   db.pragma('journal_mode = WAL')
   createSchema(db)
 

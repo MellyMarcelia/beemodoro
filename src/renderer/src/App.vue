@@ -9,6 +9,10 @@ import Hexagon from './components/Hexagon.vue'
 import SettingsScreen from './screens/SettingsScreen.vue'
 import { setSnackDragImage } from './snackDragImage'
 
+// Hi! This is the main screen of the app. Left panel = the timer and the bee,
+// right panel = the snack menu (or the Hive history). Pretty much all the
+// "what state are we in right now" logic lives in this file.
+
 // ---------------------------------------------------------------------------
 // Vault status banner (shown across the whole app, not just Settings):
 // core features must keep working even with no/broken vault (PRD §Vault
@@ -25,9 +29,11 @@ async function loadVaultStatus(): Promise<void> {
 // ---------------------------------------------------------------------------
 // Settings overlay (Cmd+,).
 const showSettings = ref(false)
+// The menu (in main/index.ts) pokes us with an 'open-settings' message, we just flip this on.
 function openSettingsFromMenu(): void {
   showSettings.value = true
 }
+// When settings close, re-grab everything in case the user changed stuff in there.
 function closeSettings(): void {
   showSettings.value = false
   loadVaultStatus()
@@ -36,11 +42,12 @@ function closeSettings(): void {
 
 // ---------------------------------------------------------------------------
 // Session state.
-const activeSession = ref<Session | null>(null)
-const description = ref('')
-const elapsedSeconds = ref(0)
+const activeSession = ref<Session | null>(null) // the session going on right now (null = nothing going on)
+const description = ref('') // whatever's typed in the "what will you focus on?" box
+const elapsedSeconds = ref(0) // how many seconds you've focused so far (paused time doesn't count)
 const isOnBreak = ref(false)
-const breakRemaining = ref(0)
+const breakRemaining = ref(0) // seconds left on the break countdown
+// Placeholder durations until the real ones load from settings.
 const snackDurations = ref<Record<SnackType, number>>({
   pollen: 15,
   'honey-drop': 25,
@@ -49,18 +56,21 @@ const snackDurations = ref<Record<SnackType, number>>({
 })
 const breakMinutes = ref(5)
 const stats = ref({ totalSessions: 0, totalFocusMinutes: 0 })
-const rightView = ref<'snacks' | 'hive'>('snacks')
-const history = ref<Session[]>([])
-const showCancelConfirm = ref(false)
-const descriptionError = ref(false)
+const rightView = ref<'snacks' | 'hive'>('snacks') // which page the right panel is showing
+const history = ref<Session[]>([]) // every past session, for the Hive
+const showCancelConfirm = ref(false) // the "are you sure?" popup
+const descriptionError = ref(false) // turns on when you try to start without typing anything
+// Hive filters (empty string = "don't filter by this").
 const filterDate = ref('')
 const filterDescription = ref('')
 const filterSnack = ref<SnackType | ''>('')
 const filterStatus = ref<'completed' | 'cancelled' | ''>('')
 
+// The every-second timers. We hang onto them so we can stop them later.
 let tickHandle: ReturnType<typeof setInterval> | null = null
 let breakHandle: ReturnType<typeof setInterval> | null = null
 
+// These three just ask the main process for fresh data and stash it.
 async function loadSettings(): Promise<void> {
   const settings = await window.api.getSettings()
   snackDurations.value = settings.snackDurations
@@ -75,6 +85,7 @@ async function loadHistory(): Promise<void> {
   history.value = await window.api.listSessions()
 }
 
+// Picks which bee animation to show based on what's happening.
 const mood = computed<BeeMood>(() => {
   if (isOnBreak.value) return 'break'
   if (!activeSession.value) return 'idle'
@@ -84,6 +95,7 @@ const mood = computed<BeeMood>(() => {
   return 'focus'
 })
 
+// Time left on the focus clock (never goes below zero).
 const remainingSeconds = computed(() => {
   if (!activeSession.value) return 0
   return Math.max(0, activeSession.value.plannedSeconds - elapsedSeconds.value)
@@ -113,12 +125,14 @@ const canCancel = computed(
     activeSession.value?.status === 'paused'
 )
 
+// Turns seconds into a clock look, like 125 -> "02:05".
 function formatClock(totalSeconds: number): string {
   const m = Math.floor(totalSeconds / 60)
   const s = totalSeconds % 60
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
+// The big numbers on screen: break countdown if on break, otherwise focus countdown.
 const timerLabel = computed(() =>
   isOnBreak.value ? formatClock(breakRemaining.value) : formatClock(remainingSeconds.value)
 )
@@ -129,6 +143,7 @@ const timerLabel = computed(() =>
 let endedResultTimeout: ReturnType<typeof setTimeout> | null = null
 const showTakeBreak = ref(false)
 
+// Stops the focus timer from counting.
 function stopTicking(): void {
   if (tickHandle) {
     clearInterval(tickHandle)
@@ -136,6 +151,9 @@ function stopTicking(): void {
   }
 }
 
+// The heartbeat of a session: every second, add 1 to the count. Every 5
+// seconds, save it to the database (so a crash only loses a few seconds).
+// When the count hits the planned time, the session is done.
 function startTicking(session: Session): void {
   stopTicking()
   elapsedSeconds.value = session.elapsedSeconds
@@ -154,6 +172,7 @@ function startTicking(session: Session): void {
   }, 1000)
 }
 
+// On launch: if a session is still going, pick it back up where it left off.
 async function loadActiveSession(): Promise<void> {
   const session = await window.api.getActiveSession()
   activeSession.value = session
@@ -164,6 +183,7 @@ async function loadActiveSession(): Promise<void> {
   }
 }
 
+// No blank descriptions allowed, the bee needs to know what you're working on!
 function validateDescription(): boolean {
   if (!description.value.trim()) {
     descriptionError.value = true
@@ -173,6 +193,8 @@ function validateDescription(): boolean {
   return true
 }
 
+// Kicks off a new session with the snack you picked (clicked or dragged).
+// Does nothing if a session is already going or the description is empty.
 async function startWithSnack(snack: SnackType): Promise<void> {
   if (activeSession.value) return
   if (!validateDescription()) return
@@ -183,6 +205,8 @@ async function startWithSnack(snack: SnackType): Promise<void> {
   startTicking(created)
 }
 
+// You grabbed a snack! We tuck the snack's name into the drag so the drop
+// spot knows which one it was.
 function onSnackDragStart(event: DragEvent, snack: SnackType): void {
   if (!event.dataTransfer) return
   event.dataTransfer.setData('text/plain', snack)
@@ -191,16 +215,19 @@ function onSnackDragStart(event: DragEvent, snack: SnackType): void {
   if (img) setSnackDragImage(event, img)
 }
 
+// You let go of the snack over the drop area: read which snack it was and start.
 function onBeeDrop(event: DragEvent): void {
   event.preventDefault()
   const snack = event.dataTransfer?.getData('text/plain') as SnackType | undefined
   if (snack) startWithSnack(snack)
 }
 
+// The browser won't allow a drop unless we say "yes, you can drop here" on dragover.
 function onBeeDragOver(event: DragEvent): void {
   event.preventDefault()
 }
 
+// The big button: pauses if running, resumes if paused. Saves the change to the database too.
 async function pauseOrResume(): Promise<void> {
   if (!activeSession.value) return
   if (activeSession.value.status === 'running') {
@@ -214,6 +241,8 @@ async function pauseOrResume(): Promise<void> {
   }
 }
 
+// Time's up, you did it! Save it as completed, refresh stats + hive, offer a
+// break, and if you don't take one within 4 seconds, go back to idle.
 async function completeSession(): Promise<void> {
   if (!activeSession.value) return
   stopTicking()
@@ -227,6 +256,9 @@ async function completeSession(): Promise<void> {
   }, 4000)
 }
 
+// You said "yes, cancel" in the popup. On a break, that just skips the break.
+// Mid-session, it saves the session as cancelled, shows the sad bee for 3
+// seconds, then goes back to idle.
 async function confirmCancel(): Promise<void> {
   showCancelConfirm.value = false
   if (isOnBreak.value) {
@@ -242,6 +274,7 @@ async function confirmCancel(): Promise<void> {
   endedResultTimeout = setTimeout(resetToIdle, 3000)
 }
 
+// Wipe the slate clean: back to the "what will you focus on?" screen.
 function resetToIdle(): void {
   if (endedResultTimeout) {
     clearTimeout(endedResultTimeout)
@@ -253,6 +286,8 @@ function resetToIdle(): void {
   showTakeBreak.value = false
 }
 
+// Break time! Counts down once a second and ends itself at zero. Breaks only
+// live here on screen, they never get saved to the database.
 function startBreak(): void {
   if (endedResultTimeout) {
     clearTimeout(endedResultTimeout)
@@ -269,6 +304,7 @@ function startBreak(): void {
   }, 1000)
 }
 
+// Break's over (or skipped): stop the countdown and go back to idle.
 function stopBreak(): void {
   if (breakHandle) {
     clearInterval(breakHandle)
@@ -278,10 +314,13 @@ function stopBreak(): void {
   resetToIdle()
 }
 
+// Each snack has its own colour in base.css, this just builds the CSS variable name.
 function snackColor(snack: SnackType): string {
   return `var(--color-snack-${snack})`
 }
 
+// The Hive list after the filters are applied. Only finished sessions show up
+// (completed or cancelled), never the one that's still going.
 const filteredHistory = computed(() =>
   history.value.filter((session) => {
     if (filterDate.value && session.startedAt.slice(0, 10) !== filterDate.value) return false
@@ -296,11 +335,13 @@ const filteredHistory = computed(() =>
   })
 )
 
+// The Hive / Back button: flips the right panel between snacks and history.
 function toggleRightView(): void {
   rightView.value = rightView.value === 'hive' ? 'snacks' : 'hive'
   loadHistory()
 }
 
+// When the app opens: load everything, then start listening for the Settings shortcut.
 onMounted(async () => {
   loadVaultStatus()
   await loadSettings()
@@ -310,6 +351,7 @@ onMounted(async () => {
   window.electron.ipcRenderer.on('open-settings', openSettingsFromMenu)
 })
 
+// Cleanup so timers and listeners don't keep running in the background.
 onUnmounted(() => {
   stopTicking()
   if (breakHandle) clearInterval(breakHandle)
@@ -319,6 +361,7 @@ onUnmounted(() => {
 
 <template>
   <div class="app-shell">
+    <!-- Yellow nag banner at the top if Obsidian logging isn't set up or the folder went missing -->
     <p v-if="vaultStatus && !vaultStatus.path" class="vault-banner">
       Logging is not configured yet; choose an Obsidian vault in Settings (Cmd+,)
     </p>
@@ -337,6 +380,7 @@ onUnmounted(() => {
         />
 
         <div class="left-body">
+          <!-- Nothing going on: ask what you'll focus on (you can drop a snack on the box too) -->
           <template v-if="!activeSession && !isOnBreak">
             <p class="prompt-label">What will you focus on?</p>
             <input
@@ -353,6 +397,7 @@ onUnmounted(() => {
               Describe your focus first, then pick a snack.
             </p>
           </template>
+          <!-- Something's going on: show the bee in whatever mood fits -->
           <template v-else>
             <div class="bee-drop-target" @dragover="onBeeDragOver" @drop="onBeeDrop">
               <Bee :mood="mood" />
@@ -360,6 +405,7 @@ onUnmounted(() => {
           </template>
         </div>
 
+        <!-- Bottom strip: cancel button + big clock on the left, action button on the right -->
         <div class="bottom-bar">
           <div class="timer-side">
             <button
@@ -385,6 +431,7 @@ onUnmounted(() => {
             </button>
             <span class="timer">{{ timerLabel }}</span>
           </div>
+          <!-- The big button changes depending on the state: on break / pause / resume / take a break / done -->
           <button v-if="isOnBreak" class="action-button break-active" disabled>On break</button>
           <button
             v-else-if="activeSession?.status === 'running'"
@@ -415,6 +462,7 @@ onUnmounted(() => {
 
       <!-- RIGHT PANEL -->
       <section class="panel panel-right">
+        <!-- Title changes: "Now working on" mid-session, otherwise "Hive" or "Snacks" -->
         <PanelHeader
           :label="
             activeSession && !isOnBreak
@@ -433,10 +481,12 @@ onUnmounted(() => {
         </PanelHeader>
 
         <div class="right-body">
+          <!-- Mid-session: just show what you're working on, big -->
           <template v-if="activeSession && !isOnBreak">
             <p class="working-on">{{ activeSession.description }}</p>
           </template>
 
+          <!-- Hive view: one hexagon per session (cracked = cancelled), filters, and a history list -->
           <template v-else-if="rightView === 'hive'">
             <div class="honeycomb">
               <Hexagon
@@ -482,6 +532,7 @@ onUnmounted(() => {
             </ul>
           </template>
 
+          <!-- Snack menu: click a snack or drag it to the left panel to start. Stats underneath. -->
           <template v-else>
             <ul class="snack-list">
               <li
@@ -517,6 +568,7 @@ onUnmounted(() => {
       </section>
     </div>
 
+    <!-- "Are you sure?" popup for cancelling a session or skipping a break -->
     <div v-if="showCancelConfirm" class="modal-overlay">
       <div class="modal">
         <p v-if="isOnBreak">Skip this break and go back to idle?</p>
@@ -530,6 +582,7 @@ onUnmounted(() => {
       </div>
     </div>
 
+    <!-- Settings popup (Cmd+,) -->
     <div v-if="showSettings" class="modal-overlay">
       <SettingsScreen @close="closeSettings" />
     </div>

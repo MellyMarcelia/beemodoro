@@ -48,6 +48,7 @@ function partsInTimeZone(
     hour12: false
   })
   const parts = Object.fromEntries(formatter.formatToParts(date).map((p) => [p.type, p.value]))
+  // Weird quirk: some systems say "24" for midnight. We want "00".
   const hour = parts.hour === '24' ? '00' : parts.hour
   return {
     year: parts.year,

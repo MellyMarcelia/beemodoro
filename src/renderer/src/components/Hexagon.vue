@@ -1,4 +1,6 @@
 <script setup lang="ts">
+// One honeycomb cell in the Hive. Filled with the snack's colour, or grey
+// with a crack line through it if the session was cancelled.
 withDefaults(defineProps<{ fill: string; cracked?: boolean }>(), { cracked: false })
 </script>
 

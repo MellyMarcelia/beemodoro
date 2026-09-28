@@ -3,12 +3,16 @@ import { ref, onMounted } from 'vue'
 import type { Settings, SnackType, VaultStatus } from '../../../shared/types'
 import { SNACK_LABELS, SNACK_ORDER } from '../../../shared/types'
 
+// The Settings popup: pick your Obsidian vault folder and tweak how long
+// each snack and the break last. Tells App.vue "close" when you hit the X.
 defineEmits<{ close: [] }>()
 
 const vaultStatus = ref<VaultStatus | null>(null)
 const settings = ref<Settings | null>(null)
 const loadError = ref<string | null>(null)
 
+// Grabs the current vault + durations when the popup opens. If something
+// breaks, show the error instead of a blank screen.
 async function loadAll(): Promise<void> {
   loadError.value = null
   try {
@@ -22,6 +26,7 @@ async function loadAll(): Promise<void> {
 
 onMounted(loadAll)
 
+// Opens the folder picker. If you cancel, nothing changes.
 async function chooseFolder(): Promise<void> {
   loadError.value = null
   try {
@@ -33,6 +38,7 @@ async function chooseFolder(): Promise<void> {
   }
 }
 
+// These two save a new number right away, but ignore junk like 0, negatives or empty boxes.
 async function updateSnackDuration(snack: SnackType, minutes: number): Promise<void> {
   if (!Number.isFinite(minutes) || minutes <= 0) return
   settings.value = await window.api.setSnackDuration(snack, minutes)

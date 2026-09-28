@@ -1,6 +1,8 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
 import type { Session, NewSession, Settings, VaultStatus, SnackType, Stats } from '../shared/types'
 
+// Tells TypeScript what window.api and window.electron look like, so the
+// screen code gets autocomplete and type checks. (No real code here, just types.)
 interface BeemodoroApi {
   getVaultStatus: () => Promise<VaultStatus>
   chooseVaultFolder: () => Promise<VaultStatus | null>

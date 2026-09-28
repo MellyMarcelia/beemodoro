@@ -26,11 +26,17 @@ import {
 import type { NewSession, SnackType } from '../shared/types'
 import { SNACK_LABELS } from '../shared/types'
 
+// This is the "backstage" of the app (Electron's main process). It opens the
+// window, builds the menu, and answers every request the screen sends over
+// (start a session, save settings, etc.) by talking to the database and
+// writing to the Obsidian log.
+
 /** Appends one session event to the vault log, using the currently saved vault path. */
 function logSessionEvent(event: SessionEvent): void {
   appendSessionEvent(getVaultStatus(getDb()).path, event)
 }
 
+// Makes the app window: its size, the pink background, and which page to load.
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
     width: 1000,
@@ -48,15 +54,18 @@ function createWindow(): void {
     }
   })
 
+  // Wait until the page is ready before showing the window, so there's no white flash.
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
   })
 
+  // Links that try to open a new window go to your normal browser instead.
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
   })
 
+  // In dev mode, load from the live dev server (hot reload). Otherwise load the built files.
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
@@ -67,6 +76,7 @@ function createWindow(): void {
 /** Cmd+, (or Ctrl+, elsewhere) opens Settings: the app's only custom menu item. */
 function buildMenu(): void {
   const isMac = process.platform === 'darwin'
+  // On Mac, Settings goes in the app-name menu. Everywhere else it goes under File.
   const template: Electron.MenuItemConstructorOptions[] = [
     ...(isMac
       ? [
@@ -110,6 +120,7 @@ function buildMenu(): void {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template))
 }
 
+// Everything below runs once Electron has finished starting up.
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.beemodoro.app')
 
@@ -137,7 +148,10 @@ app.whenReady().then(() => {
   }
 
   // Settings (vault folder + snack/break durations).
+  // Each ipcMain.handle is like a little phone line: the screen calls
+  // 'vault:getStatus' (etc.) and whatever we return gets sent back to it.
   ipcMain.handle('vault:getStatus', () => getVaultStatus(getDb()))
+  // Pops up the "pick a folder" dialog. Returns null if you hit cancel.
   ipcMain.handle('vault:chooseFolder', async () => {
     const mainWindow = BrowserWindow.getFocusedWindow()
     const result = mainWindow
@@ -162,6 +176,7 @@ app.whenReady().then(() => {
 
   // Sessions: start / pause / resume / cancel / complete / tick.
   ipcMain.handle('session:getActive', () => getActiveSession(getDb()))
+  // New session: look up how long this snack is, save it, write a "started" line to Obsidian.
   ipcMain.handle('session:start', (_event, input: NewSession) => {
     const settings = getSettings(getDb())
     const minutes = settings.snackDurations[input.snack]
@@ -176,6 +191,7 @@ app.whenReady().then(() => {
     })
     return created
   })
+  // The screen checks in every few seconds so we save progress (crash insurance).
   ipcMain.handle('session:tick', (_event, id: number, elapsedSeconds: number) => {
     updateElapsedSeconds(getDb(), id, elapsedSeconds)
   })
@@ -184,6 +200,7 @@ app.whenReady().then(() => {
     return pauseSession(getDb(), id)
   })
   ipcMain.handle('session:resume', (_event, id: number) => resumeSession(getDb(), id))
+  // Cancel and complete work the same way: close the session in the DB, then log it.
   ipcMain.handle('session:cancel', (_event, id: number, elapsedSeconds: number) => {
     const ended = endSession(getDb(), id, 'cancelled', elapsedSeconds)
     logSessionEvent({
@@ -213,11 +230,13 @@ app.whenReady().then(() => {
 
   createWindow()
 
+  // Mac thing: clicking the dock icon with no windows open makes a new one.
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
 })
 
+// Closing the last window quits the app, except on Mac where apps usually stay open.
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()

@@ -5,6 +5,7 @@
 /** The four fixed snack types and their default durations (minutes). */
 export type SnackType = 'pollen' | 'honey-drop' | 'flower' | 'honey-jar'
 
+// Pretty names to show on screen for each snack.
 export const SNACK_LABELS: Record<SnackType, string> = {
   pollen: 'Pollen',
   'honey-drop': 'Honey drop',
@@ -21,6 +22,7 @@ export const DEFAULT_SNACK_DURATIONS: Record<SnackType, number> = {
 
 export const DEFAULT_BREAK_MINUTES = 5
 
+// The order snacks show up in lists (smallest to biggest).
 export const SNACK_ORDER: SnackType[] = ['pollen', 'honey-drop', 'flower', 'honey-jar']
 
 /** A session's lifecycle state. */

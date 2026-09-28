@@ -4,6 +4,7 @@
 import type Database from 'better-sqlite3'
 import type { NewSession, Session, SessionStatus, SnackType } from '../shared/types'
 
+// What a row looks like straight out of the database (snake_case column names).
 interface SessionRow {
   id: number
   snack: string
@@ -15,6 +16,7 @@ interface SessionRow {
   ended_at: string | null
 }
 
+// Translates a database row into the nicer camelCase shape the rest of the app uses.
 function toSession(row: SessionRow): Session {
   return {
     id: row.id,
@@ -42,6 +44,7 @@ export function createSession(
   return getSessionById(db, result.lastInsertRowid as number)!
 }
 
+// Grabs one session by its id (null if it doesn't exist).
 export function getSessionById(db: Database.Database, id: number): Session | null {
   const row = db.prepare<[number], SessionRow>('SELECT * FROM sessions WHERE id = ?').get(id)
   return row ? toSession(row) : null
@@ -91,6 +94,7 @@ export function endSession(
   return getSessionById(db, id)!
 }
 
+// Every session ever, oldest first. This is what fills the Hive.
 export function listSessions(db: Database.Database): Session[] {
   const rows = db.prepare<[], SessionRow>('SELECT * FROM sessions ORDER BY id ASC').all()
   return rows.map(toSession)

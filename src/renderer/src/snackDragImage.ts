@@ -5,6 +5,7 @@
 // <img> is used as a plain bitmap instead, so each snack is pre-rendered
 // off-page at the size it is drawn on screen.
 
+// Remembers the ready-made drag picture for each snack image on screen.
 const cache = new WeakMap<
   HTMLImageElement,
   { image: HTMLImageElement; width: number; height: number }

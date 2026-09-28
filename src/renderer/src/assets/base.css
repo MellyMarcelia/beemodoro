@@ -28,6 +28,7 @@
   --font-timer: 'VT323', monospace;
 }
 
+/* Reset: sizes include borders/padding, and no surprise default margins. */
 *,
 *::before,
 *::after {
