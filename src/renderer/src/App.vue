@@ -88,17 +88,21 @@ const remainingSeconds = computed(() => {
   return Math.max(0, activeSession.value.plannedSeconds - elapsedSeconds.value)
 })
 
-const focusProgress = computed<number | null>(() => {
+// Header progress bar: fills with the focus session, then refills (in a
+// different colour) during the break. Empty when idle.
+const headerProgress = computed(() => {
   if (isOnBreak.value) {
-    if (!breakMinutes.value) return null
     const totalBreakSeconds = breakMinutes.value * 60
-    return totalBreakSeconds > 0
-      ? Math.min(1, (totalBreakSeconds - breakRemaining.value) / totalBreakSeconds)
-      : null
+    if (totalBreakSeconds <= 0) return 0
+    return (totalBreakSeconds - breakRemaining.value) / totalBreakSeconds
   }
-  if (!activeSession.value || activeSession.value.plannedSeconds <= 0) return null
-  return Math.min(1, elapsedSeconds.value / activeSession.value.plannedSeconds)
+  if (!activeSession.value || activeSession.value.plannedSeconds <= 0) return 0
+  return elapsedSeconds.value / activeSession.value.plannedSeconds
 })
+
+const headerProgressColor = computed(() =>
+  isOnBreak.value ? 'var(--color-dot-left)' : 'var(--color-snack-honey-drop)'
+)
 
 function formatClock(totalSeconds: number): string {
   const m = Math.floor(totalSeconds / 60)
@@ -328,7 +332,8 @@ onUnmounted(() => {
         <PanelHeader
           label="Focus Time"
           dot-color="var(--color-dot-left)"
-          :progress="focusProgress"
+          :progress="headerProgress"
+          :progress-color="headerProgressColor"
         />
 
         <div class="left-body">

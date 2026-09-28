@@ -1,6 +1,22 @@
 <script setup lang="ts">
-withDefaults(defineProps<{ label: string; dotColor: string; progress?: number | null }>(), {
-  progress: null
+import { computed, ref, watch } from 'vue'
+
+const props = defineProps<{
+  label: string
+  dotColor: string
+  // 0–1 fill of the header progress bar. Leave undefined for a purely
+  // decorative header (double line, no bar).
+  progress?: number
+  progressColor?: string
+}>()
+
+const clamped = computed(() => Math.min(1, Math.max(0, props.progress ?? 0)))
+
+// Animate forward progress smoothly, but jump straight back when the bar
+// resets (session → break, break → idle) instead of sliding backwards.
+const animate = ref(true)
+watch(clamped, (next, prev) => {
+  animate.value = next >= prev
 })
 </script>
 
@@ -8,23 +24,26 @@ withDefaults(defineProps<{ label: string; dotColor: string; progress?: number | 
   <div class="header-row">
     <span class="dot" :style="{ backgroundColor: dotColor }" />
     <span class="label">{{ label }}</span>
-    <span class="double-line">
-      <span class="line-row">
-        <span class="line-track" :class="{ dimmed: progress !== null }" />
-        <span
-          v-if="progress !== null"
-          class="line-fill"
-          :style="{ width: `${Math.round(Math.min(1, Math.max(0, progress)) * 100)}%` }"
-        />
-      </span>
-      <span class="line-row">
-        <span class="line-track" :class="{ dimmed: progress !== null }" />
-        <span
-          v-if="progress !== null"
-          class="line-fill"
-          :style="{ width: `${Math.round(Math.min(1, Math.max(0, progress)) * 100)}%` }"
-        />
-      </span>
+    <span
+      v-if="progress !== undefined"
+      class="progress-bar"
+      role="progressbar"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      :aria-valuenow="Math.round(clamped * 100)"
+    >
+      <span
+        class="progress-fill"
+        :class="{ animate }"
+        :style="{
+          width: `${clamped * 100}%`,
+          backgroundColor: progressColor ?? 'var(--color-snack-honey-drop)'
+        }"
+      />
+    </span>
+    <span v-else class="double-line">
+      <span class="line" />
+      <span class="line" />
     </span>
     <slot name="action" />
   </div>
@@ -63,26 +82,27 @@ withDefaults(defineProps<{ label: string; dotColor: string; progress?: number | 
   min-width: 12px;
 }
 
-.line-row {
-  position: relative;
+.line {
   height: 1.5px;
-  width: 100%;
-}
-
-.line-track {
-  position: absolute;
-  inset: 0;
   background: var(--color-ink);
 }
 
-.line-track.dimmed {
-  opacity: 0.25;
+.progress-bar {
+  flex: 1;
+  min-width: 24px;
+  height: 16px;
+  border: var(--outline-width) solid var(--color-ink);
+  border-radius: 999px;
+  background: var(--color-icon-cell);
+  overflow: hidden;
 }
 
-.line-fill {
-  position: absolute;
-  inset: 0 auto 0 0;
-  background: var(--color-ink);
-  transition: width 0.3s linear;
+.progress-fill {
+  display: block;
+  height: 100%;
+}
+
+.progress-fill.animate {
+  transition: width 1s linear;
 }
 </style>
