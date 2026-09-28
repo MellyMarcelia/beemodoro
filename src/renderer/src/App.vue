@@ -10,7 +10,7 @@ import SettingsScreen from './screens/SettingsScreen.vue'
 import { setSnackDragImage } from './snackDragImage'
 
 // ---------------------------------------------------------------------------
-// Vault status banner (shown across the whole app, not just Settings) —
+// Vault status banner (shown across the whole app, not just Settings):
 // core features must keep working even with no/broken vault (PRD §Vault
 // selection acceptance criteria).
 const vaultStatus = ref<VaultStatus | null>(null)
@@ -124,7 +124,7 @@ const timerLabel = computed(() =>
 )
 
 // After a session ends (completed/cancelled), briefly show its result mood
-// before returning to idle — "cancelling ends the session ... then returns
+// before returning to idle: "cancelling ends the session ... then returns
 // to idle" (PRD §4.2).
 let endedResultTimeout: ReturnType<typeof setTimeout> | null = null
 const showTakeBreak = ref(false)
@@ -136,7 +136,7 @@ function stopTicking(): void {
   }
 }
 
-async function startTicking(session: Session): Promise<void> {
+function startTicking(session: Session): void {
   stopTicking()
   elapsedSeconds.value = session.elapsedSeconds
   let sinceLastPersist = 0
@@ -227,15 +227,6 @@ async function completeSession(): Promise<void> {
   }, 4000)
 }
 
-function requestCancel(): void {
-  if (isOnBreak.value) {
-    showCancelConfirm.value = true
-    return
-  }
-  if (!activeSession.value) return
-  showCancelConfirm.value = true
-}
-
 async function confirmCancel(): Promise<void> {
   showCancelConfirm.value = false
   if (isOnBreak.value) {
@@ -249,10 +240,6 @@ async function confirmCancel(): Promise<void> {
   await loadStats()
   await loadHistory()
   endedResultTimeout = setTimeout(resetToIdle, 3000)
-}
-
-function dismissCancel(): void {
-  showCancelConfirm.value = false
 }
 
 function resetToIdle(): void {
@@ -333,10 +320,10 @@ onUnmounted(() => {
 <template>
   <div class="app-shell">
     <p v-if="vaultStatus && !vaultStatus.path" class="vault-banner">
-      Logging is not configured yet — choose an Obsidian vault in Settings (Cmd+,)
+      Logging is not configured yet; choose an Obsidian vault in Settings (Cmd+,)
     </p>
     <p v-else-if="vaultStatus && !vaultStatus.exists" class="vault-banner">
-      Your vault folder can't be found — logging is currently failing. Choose it again in Settings
+      Your vault folder can't be found; logging is currently failing. Choose it again in Settings
     </p>
 
     <div class="panels">
@@ -379,8 +366,7 @@ onUnmounted(() => {
               class="reset-icon"
               aria-label="Cancel session"
               :class="{ hidden: !canCancel }"
-              :disabled="!canCancel"
-              @click="requestCancel"
+              @click="showCancelConfirm = true"
             >
               <!-- viewBox nudged 1 unit right: the arrowhead makes the icon lopsided -->
               <svg
@@ -401,35 +387,27 @@ onUnmounted(() => {
           </div>
           <button v-if="isOnBreak" class="action-button break-active" disabled>On break</button>
           <button
-            v-else-if="!activeSession"
-            class="action-button start"
-            style="visibility: hidden"
-            @click="startWithSnack('pollen')"
-          >
-            Start
-          </button>
-          <button
-            v-else-if="activeSession.status === 'running'"
+            v-else-if="activeSession?.status === 'running'"
             class="action-button pause"
             @click="pauseOrResume"
           >
             Pause
           </button>
           <button
-            v-else-if="activeSession.status === 'paused'"
+            v-else-if="activeSession?.status === 'paused'"
             class="action-button start"
             @click="pauseOrResume"
           >
             Resume
           </button>
           <button
-            v-else-if="activeSession.status === 'completed' && showTakeBreak"
+            v-else-if="activeSession?.status === 'completed' && showTakeBreak"
             class="action-button start"
             @click="startBreak"
           >
             Take a break
           </button>
-          <button v-else class="action-button pause" disabled>
+          <button v-else-if="activeSession" class="action-button pause" disabled>
             {{ activeSession?.status === 'completed' ? 'Completed' : 'Cancelled' }}
           </button>
         </div>
@@ -544,7 +522,7 @@ onUnmounted(() => {
         <p v-if="isOnBreak">Skip this break and go back to idle?</p>
         <p v-else>Cancel this session? Progress will be recorded as cancelled.</p>
         <div class="modal-actions">
-          <button @click="dismissCancel">Keep going</button>
+          <button @click="showCancelConfirm = false">Keep going</button>
           <button class="danger" @click="confirmCancel">
             {{ isOnBreak ? 'Skip break' : 'Cancel session' }}
           </button>
@@ -573,7 +551,6 @@ onUnmounted(() => {
   border: var(--outline-width) solid var(--color-ink);
   padding: 8px 14px;
   font-size: 13px;
-  color: var(--color-ink);
 }
 
 .panels {
@@ -676,7 +653,6 @@ onUnmounted(() => {
   border: var(--outline-width) solid var(--color-ink);
   background: var(--color-panel);
   color: var(--color-ink);
-  opacity: 1;
   padding: 0;
   display: flex;
   align-items: center;
@@ -685,8 +661,8 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
-.reset-icon:hover:not(:disabled) {
-  background: var(--color-snack-honey-drop, #cc9594);
+.reset-icon:hover {
+  background: var(--color-snack-honey-drop);
 }
 
 /* Kept in the layout (not v-if) so the timer doesn't shift when it appears. */
@@ -697,7 +673,6 @@ onUnmounted(() => {
 .timer {
   font-family: var(--font-timer);
   font-size: 88px;
-  color: var(--color-ink);
   line-height: 1;
 }
 
@@ -762,7 +737,6 @@ onUnmounted(() => {
 
 .snack-row {
   height: 144px;
-  min-height: 144px;
   display: flex;
   align-items: center;
   border-bottom: var(--outline-width) solid var(--color-ink);
