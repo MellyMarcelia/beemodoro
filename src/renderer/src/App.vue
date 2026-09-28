@@ -7,6 +7,7 @@ import PanelHeader from './components/PanelHeader.vue'
 import SnackIcon from './components/SnackIcon.vue'
 import Hexagon from './components/Hexagon.vue'
 import SettingsScreen from './screens/SettingsScreen.vue'
+import { setSnackDragImage } from './snackDragImage'
 
 // ---------------------------------------------------------------------------
 // Vault status banner (shown across the whole app, not just Settings) —
@@ -183,7 +184,11 @@ async function startWithSnack(snack: SnackType): Promise<void> {
 }
 
 function onSnackDragStart(event: DragEvent, snack: SnackType): void {
-  event.dataTransfer?.setData('text/plain', snack)
+  if (!event.dataTransfer) return
+  event.dataTransfer.setData('text/plain', snack)
+  // Drag just the snack artwork, not the square icon cell behind it.
+  const img = (event.currentTarget as HTMLElement).querySelector('img')
+  if (img) setSnackDragImage(event, img)
 }
 
 function onBeeDrop(event: DragEvent): void {

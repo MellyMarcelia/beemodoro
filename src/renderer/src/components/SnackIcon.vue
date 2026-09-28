@@ -4,6 +4,7 @@ import pollenImg from '../assets/snacks/snack-pollen.webp'
 import honeyDropImg from '../assets/snacks/snack-honey-drop.webp'
 import flowerImg from '../assets/snacks/snack-flower.webp'
 import honeyJarImg from '../assets/snacks/snack-honey-jar.webp'
+import { prepareSnackDragImage } from '../snackDragImage'
 
 defineProps<{ snack: SnackType }>()
 
@@ -16,7 +17,13 @@ const imageForSnack: Record<SnackType, string> = {
 </script>
 
 <template>
-  <img :src="imageForSnack[snack]" :alt="snack" class="snack-icon" draggable="false" />
+  <img
+    :src="imageForSnack[snack]"
+    :alt="snack"
+    class="snack-icon"
+    draggable="false"
+    @load="prepareSnackDragImage($event.target as HTMLImageElement)"
+  />
 </template>
 
 <style scoped>
