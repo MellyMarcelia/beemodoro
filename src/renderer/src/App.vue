@@ -483,11 +483,13 @@ onUnmounted(() => {
                 v-for="snack in SNACK_ORDER"
                 :key="snack"
                 class="snack-row"
-                draggable="true"
-                @dragstart="onSnackDragStart($event, snack)"
                 @click="startWithSnack(snack)"
               >
-                <span class="snack-icon-cell">
+                <span
+                  class="snack-icon-cell"
+                  draggable="true"
+                  @dragstart="onSnackDragStart($event, snack)"
+                >
                   <SnackIcon :snack="snack" />
                 </span>
                 <span class="snack-name">{{ SNACK_LABELS[snack] }}</span>
