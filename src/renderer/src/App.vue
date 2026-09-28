@@ -30,6 +30,7 @@ function openSettingsFromMenu(): void {
 function closeSettings(): void {
   showSettings.value = false
   loadVaultStatus()
+  loadSettings()
 }
 
 // ---------------------------------------------------------------------------
@@ -51,6 +52,10 @@ const rightView = ref<'snacks' | 'hive'>('snacks')
 const history = ref<Session[]>([])
 const showCancelConfirm = ref(false)
 const descriptionError = ref(false)
+const filterDate = ref('')
+const filterDescription = ref('')
+const filterSnack = ref<SnackType | ''>('')
+const filterStatus = ref<'completed' | 'cancelled' | ''>('')
 
 let tickHandle: ReturnType<typeof setInterval> | null = null
 let breakHandle: ReturnType<typeof setInterval> | null = null
@@ -253,6 +258,20 @@ function snackColor(snack: SnackType): string {
   return `var(--color-snack-${snack})`
 }
 
+const filteredHistory = computed(() =>
+  history.value.filter((session) => {
+    if (filterDate.value && session.startedAt.slice(0, 10) !== filterDate.value) return false
+    if (
+      filterDescription.value &&
+      !session.description.toLowerCase().includes(filterDescription.value.toLowerCase())
+    )
+      return false
+    if (filterSnack.value && session.snack !== filterSnack.value) return false
+    if (filterStatus.value && session.status !== filterStatus.value) return false
+    return session.status === 'completed' || session.status === 'cancelled'
+  })
+)
+
 function toggleRightView(): void {
   rightView.value = rightView.value === 'hive' ? 'snacks' : 'hive'
   loadHistory()
@@ -377,11 +396,7 @@ onUnmounted(() => {
           dot-color="var(--color-dot-right)"
         >
           <template #action>
-            <button
-              v-if="!activeSession || isOnBreak"
-              class="hive-toggle"
-              @click="toggleRightView"
-            >
+            <button v-if="!activeSession || isOnBreak" class="hive-toggle" @click="toggleRightView">
               {{ rightView === 'hive' ? 'Back' : 'Hive' }}
             </button>
           </template>
@@ -401,12 +416,39 @@ onUnmounted(() => {
                 :cracked="session.status === 'cancelled'"
               />
             </div>
+            <div class="filter-row">
+              <input
+                v-model="filterDate"
+                type="date"
+                class="filter-input"
+                aria-label="Filter by date"
+              />
+              <input
+                v-model="filterDescription"
+                type="text"
+                class="filter-input"
+                placeholder="Filter description"
+              />
+              <select v-model="filterSnack" class="filter-input">
+                <option value="">All snacks</option>
+                <option v-for="snack in SNACK_ORDER" :key="snack" :value="snack">
+                  {{ SNACK_LABELS[snack] }}
+                </option>
+              </select>
+              <select v-model="filterStatus" class="filter-input">
+                <option value="">All statuses</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
             <ul class="history-list">
-              <li v-for="session in history" :key="session.id" class="history-row">
+              <li v-for="session in filteredHistory" :key="session.id" class="history-row">
                 <span class="history-date">{{ session.startedAt.slice(0, 10) }}</span>
                 <span class="history-desc">{{ session.description }}</span>
+                <span class="history-snack">{{ SNACK_LABELS[session.snack] }}</span>
                 <span class="history-status" :class="session.status">{{ session.status }}</span>
               </li>
+              <li v-if="filteredHistory.length === 0" class="history-empty">No sessions match.</li>
             </ul>
           </template>
 
@@ -709,6 +751,29 @@ onUnmounted(() => {
   overflow-y: auto;
 }
 
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 16px 12px;
+}
+
+.filter-input {
+  flex: 1;
+  min-width: 90px;
+  border: var(--outline-width) solid var(--color-ink);
+  background: #fff8ea;
+  padding: 4px 6px;
+  font-family: var(--font-display);
+  font-size: 11px;
+}
+
+.history-empty {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  padding: 8px 0;
+}
+
 .history-row {
   display: flex;
   gap: 8px;
@@ -723,6 +788,10 @@ onUnmounted(() => {
 
 .history-desc {
   flex: 1;
+}
+
+.history-snack {
+  color: var(--color-text-muted);
 }
 
 .history-status.completed {
