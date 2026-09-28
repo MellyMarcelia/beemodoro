@@ -639,19 +639,26 @@ onUnmounted(() => {
 }
 
 .reset-icon {
-  width: 36px;
-  height: 36px;
-  border: none;
-  background: transparent;
-  color: var(--color-text-muted);
-  opacity: 0.6;
-  font-size: 22px;
+  width: 48px;
+  height: 48px;
+  border: var(--outline-width) solid var(--color-ink);
+  background: var(--color-panel);
+  color: var(--color-ink);
+  opacity: 1;
+  font-size: 26px;
   cursor: pointer;
+  flex-shrink: 0;
+}
+
+.reset-icon:hover:not(:disabled) {
+  background: var(--color-snack-honey-drop, #cc9594);
 }
 
 .reset-icon:disabled {
   cursor: default;
-  opacity: 0.25;
+  opacity: 0.3;
+  color: var(--color-text-muted);
+  border-color: var(--color-text-muted);
 }
 
 .timer {
