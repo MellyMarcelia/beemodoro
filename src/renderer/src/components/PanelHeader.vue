@@ -1,5 +1,7 @@
 <script setup lang="ts">
-defineProps<{ label: string; dotColor: string }>()
+withDefaults(defineProps<{ label: string; dotColor: string; progress?: number | null }>(), {
+  progress: null
+})
 </script>
 
 <template>
@@ -7,8 +9,22 @@ defineProps<{ label: string; dotColor: string }>()
     <span class="dot" :style="{ backgroundColor: dotColor }" />
     <span class="label">{{ label }}</span>
     <span class="double-line">
-      <span class="line" />
-      <span class="line" />
+      <span class="line-row">
+        <span class="line-track" :class="{ dimmed: progress !== null }" />
+        <span
+          v-if="progress !== null"
+          class="line-fill"
+          :style="{ width: `${Math.round(Math.min(1, Math.max(0, progress)) * 100)}%` }"
+        />
+      </span>
+      <span class="line-row">
+        <span class="line-track" :class="{ dimmed: progress !== null }" />
+        <span
+          v-if="progress !== null"
+          class="line-fill"
+          :style="{ width: `${Math.round(Math.min(1, Math.max(0, progress)) * 100)}%` }"
+        />
+      </span>
     </span>
     <slot name="action" />
   </div>
@@ -47,9 +63,26 @@ defineProps<{ label: string; dotColor: string }>()
   min-width: 12px;
 }
 
-.line {
+.line-row {
+  position: relative;
   height: 1.5px;
-  background: var(--color-ink);
   width: 100%;
+}
+
+.line-track {
+  position: absolute;
+  inset: 0;
+  background: var(--color-ink);
+}
+
+.line-track.dimmed {
+  opacity: 0.25;
+}
+
+.line-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--color-ink);
+  transition: width 0.3s linear;
 }
 </style>

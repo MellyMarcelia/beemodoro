@@ -88,6 +88,18 @@ const remainingSeconds = computed(() => {
   return Math.max(0, activeSession.value.plannedSeconds - elapsedSeconds.value)
 })
 
+const focusProgress = computed<number | null>(() => {
+  if (isOnBreak.value) {
+    if (!breakMinutes.value) return null
+    const totalBreakSeconds = breakMinutes.value * 60
+    return totalBreakSeconds > 0
+      ? Math.min(1, (totalBreakSeconds - breakRemaining.value) / totalBreakSeconds)
+      : null
+  }
+  if (!activeSession.value || activeSession.value.plannedSeconds <= 0) return null
+  return Math.min(1, elapsedSeconds.value / activeSession.value.plannedSeconds)
+})
+
 function formatClock(totalSeconds: number): string {
   const m = Math.floor(totalSeconds / 60)
   const s = totalSeconds % 60
@@ -305,7 +317,11 @@ onUnmounted(() => {
     <div class="panels">
       <!-- LEFT PANEL: FOCUS TIME -->
       <section class="panel panel-left">
-        <PanelHeader label="Focus Time" dot-color="var(--color-dot-left)" />
+        <PanelHeader
+          label="Focus Time"
+          dot-color="var(--color-dot-left)"
+          :progress="focusProgress"
+        />
 
         <div class="left-body">
           <template v-if="!activeSession && !isOnBreak">
