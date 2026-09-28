@@ -4,8 +4,8 @@ import { computed, ref, watch } from 'vue'
 const props = defineProps<{
   label: string
   dotColor: string
-  // 0–1 fill of the header progress bar. Leave undefined for a purely
-  // decorative header (double line, no bar).
+  // 0–1 fill of the header progress bar. Leave undefined for a plain
+  // header with no bar.
   progress?: number
   progressColor?: string
 }>()
@@ -41,10 +41,7 @@ watch(clamped, (next, prev) => {
         }"
       />
     </span>
-    <span v-else class="double-line">
-      <span class="line" />
-      <span class="line" />
-    </span>
+    <span v-else class="spacer" />
     <slot name="action" />
   </div>
 </template>
@@ -74,17 +71,8 @@ watch(clamped, (next, prev) => {
   white-space: nowrap;
 }
 
-.double-line {
+.spacer {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 12px;
-}
-
-.line {
-  height: 1.5px;
-  background: var(--color-ink);
 }
 
 .progress-bar {
