@@ -47,17 +47,24 @@ const moodText: Record<BeeMood, string> = {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
+  justify-content: center;
+  gap: 12px;
+  height: 100%;
+  min-height: 0;
 }
 
+/* Up to 260px, but shrinks with the panel so it never spills past its borders. */
 .bee-gif {
+  flex: 0 1 260px;
+  min-height: 0;
   width: 260px;
-  height: 260px;
+  max-width: 100%;
   object-fit: contain;
 }
 
 .speech-bubble {
   position: relative;
+  flex-shrink: 0;
   background: #ffffff;
   border: 4px solid var(--color-ink);
   padding: 10px 20px;
