@@ -11,7 +11,7 @@ const props = defineProps<{ mood: BeeMood }>()
 
 // Every mood that can actually render the Bee component has a matching GIF.
 // ('idle' has no asset because the idle state shows the "what will you focus
-// on?" prompt instead of the bee — this mapping never gets used for it.)
+// on?" prompt instead of the bee; this mapping never gets used for it.)
 const assetForMood: Partial<Record<BeeMood, string>> = {
   focus: beeFocus,
   paused: beeScared,

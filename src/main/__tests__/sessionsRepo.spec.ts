@@ -46,7 +46,7 @@ describe('sessionsRepo', () => {
     expect(paused.status).toBe('paused')
     expect(paused.elapsedSeconds).toBe(120)
 
-    // Simulate time passing while paused — elapsed must not change.
+    // Simulate time passing while paused; elapsed must not change.
     const stillPaused = getActiveSession(db)
     expect(stillPaused?.elapsedSeconds).toBe(120)
 
@@ -119,7 +119,7 @@ describe('sessionsRepo', () => {
   it('plannedSeconds is fixed at start and unaffected by later settings changes (log duration must use it, not live settings)', () => {
     // Regression test: the vault log's "(N min)" figure must come from the
     // session's own plannedSeconds, not from re-reading Settings at
-    // complete/cancel time — otherwise changing a snack's duration mid-session
+    // complete/cancel time; otherwise changing a snack's duration mid-session
     // would retroactively rewrite what gets logged for an in-progress session.
     const session = createSession(db, { snack: 'honey-drop', description: 'x' }, 25 * 60)
     // Simulate the user changing Honey drop's duration in Settings mid-session.

@@ -1,5 +1,5 @@
 // Append-only Obsidian logging. One bullet line per session event, appended
-// to <vault>/Beemodoro/Focus/YYYY/YYYY-MM/YYYY-MM-DD.md — the file for the
+// to <vault>/Beemodoro/Focus/YYYY/YYYY-MM/YYYY-MM-DD.md, the file for the
 // day the event actually happened (in the user's local timezone). Never
 // rewrites or truncates existing content: every write here uses
 // fs.appendFileSync, which only ever adds bytes to the end of the file.
@@ -14,13 +14,13 @@ export type SessionEventType = 'session.started' | 'session.completed' | 'sessio
 
 export interface SessionEvent {
   type: SessionEventType
-  /** Status label written into the line — 'running', 'completed', or 'cancelled'. */
+  /** Status label written into the line: 'running', 'completed', or 'cancelled'. */
   status: string
   snack: SnackType
   /** Snack duration in minutes, as configured when the session started. */
   snackMinutes: number
   description: string
-  /** Elapsed (non-paused) seconds — required on completed/cancelled, omitted on started. */
+  /** Elapsed (non-paused) seconds; required on completed/cancelled, omitted on started. */
   durationSeconds?: number
 }
 
@@ -77,7 +77,7 @@ function utcOffset(date: Date, timeZone: string): string {
 
 /**
  * Formats an instant as "YYYY-MM-DD HH:MM:SS (Zone/Name, UTC+HH:MM)" in the
- * given timezone — the exact timestamp format required on every log line.
+ * given timezone, the exact timestamp format required on every log line.
  */
 export function formatTimestamp(date: Date, timeZone: string): string {
   const p = partsInTimeZone(date, timeZone)
@@ -107,7 +107,7 @@ export function formatLogLine(event: SessionEvent, date: Date, timeZone: string)
 }
 
 /**
- * The log file path for the day an event happened, in the given timezone —
+ * The log file path for the day an event happened, in the given timezone,
  * <vault>/Beemodoro/Focus/YYYY/YYYY-MM/YYYY-MM-DD.md.
  */
 export function logFilePath(vaultPath: string, date: Date, timeZone: string): string {

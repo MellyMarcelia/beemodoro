@@ -37,7 +37,7 @@ export function setVaultPath(db: Database.Database, path: string): void {
 
 /**
  * The saved vault path plus whether that folder still exists on disk right
- * now — the renderer uses `exists` to decide which warning banner to show.
+ * now; the renderer uses `exists` to decide which warning banner to show.
  */
 export function getVaultStatus(db: Database.Database): VaultStatus {
   const path = getVaultPath(db)

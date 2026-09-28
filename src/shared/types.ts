@@ -1,5 +1,5 @@
 // Shared data shapes used by main, preload, and renderer. Plain TypeScript
-// interfaces (no classes/generics) — same beginner-friendly convention as
+// interfaces (no classes/generics); same beginner-friendly convention as
 // Todobee.
 
 /** The four fixed snack types and their default durations (minutes). */

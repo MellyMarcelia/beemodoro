@@ -47,7 +47,7 @@ export function getSessionById(db: Database.Database, id: number): Session | nul
   return row ? toSession(row) : null
 }
 
-/** The session currently in progress (running or paused), if any — at most one at a time. */
+/** The session currently in progress (running or paused), if any; at most one at a time. */
 export function getActiveSession(db: Database.Database): Session | null {
   const row = db
     .prepare<[], SessionRow>(
@@ -57,7 +57,7 @@ export function getActiveSession(db: Database.Database): Session | null {
   return row ? toSession(row) : null
 }
 
-/** Persists the latest elapsed seconds — called every tick so crash recovery never loses more than a few seconds. */
+/** Persists the latest elapsed seconds; called every tick so crash recovery never loses more than a few seconds. */
 export function updateElapsedSeconds(
   db: Database.Database,
   id: number,
@@ -96,7 +96,7 @@ export function listSessions(db: Database.Database): Session[] {
   return rows.map(toSession)
 }
 
-/** Lifetime stats: total completed sessions and total focus minutes — cancelled sessions never count. */
+/** Lifetime stats: total completed sessions and total focus minutes; cancelled sessions never count. */
 export function getStats(db: Database.Database): {
   totalSessions: number
   totalFocusMinutes: number
@@ -115,7 +115,7 @@ export function getStats(db: Database.Database): {
 /**
  * Crash recovery: any session left `running`/`paused` at launch (the app
  * was force-quit mid-session) is auto-closed as `cancelled`, using the
- * elapsed seconds last persisted to SQLite — no silent data loss. Returns
+ * elapsed seconds last persisted to SQLite; no silent data loss. Returns
  * the closed session, or null if nothing needed recovering.
  */
 export function recoverAbandonedSession(db: Database.Database): Session | null {

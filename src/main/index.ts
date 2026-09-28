@@ -64,7 +64,7 @@ function createWindow(): void {
   }
 }
 
-/** Cmd+, (or Ctrl+, elsewhere) opens Settings — the app's only custom menu item. */
+/** Cmd+, (or Ctrl+, elsewhere) opens Settings: the app's only custom menu item. */
 function buildMenu(): void {
   const isMac = process.platform === 'darwin'
   const template: Electron.MenuItemConstructorOptions[] = [
@@ -122,7 +122,7 @@ app.whenReady().then(() => {
   // Crash recovery, run once at launch (Milestone 1 spec): a session left
   // running/paused when the app was last closed (force-quit, crash) is
   // auto-closed as cancelled using the last persisted elapsed time, and
-  // logged — no session is ever silently dropped.
+  // logged; no session is ever silently dropped.
   const db = getDb()
   const recovered = recoverAbandonedSession(db)
   if (recovered) {
