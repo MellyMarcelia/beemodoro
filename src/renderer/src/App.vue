@@ -211,12 +211,20 @@ async function completeSession(): Promise<void> {
 }
 
 function requestCancel(): void {
+  if (isOnBreak.value) {
+    showCancelConfirm.value = true
+    return
+  }
   if (!activeSession.value) return
   showCancelConfirm.value = true
 }
 
 async function confirmCancel(): Promise<void> {
   showCancelConfirm.value = false
+  if (isOnBreak.value) {
+    stopBreak()
+    return
+  }
   if (!activeSession.value) return
   stopTicking()
   const cancelled = await window.api.cancelSession(activeSession.value.id, elapsedSeconds.value)
@@ -353,9 +361,10 @@ onUnmounted(() => {
               class="reset-icon"
               aria-label="Cancel session"
               :disabled="
-                !activeSession ||
-                activeSession.status === 'completed' ||
-                activeSession.status === 'cancelled'
+                !isOnBreak &&
+                (!activeSession ||
+                  activeSession.status === 'completed' ||
+                  activeSession.status === 'cancelled')
               "
               @click="requestCancel"
             >
@@ -503,10 +512,13 @@ onUnmounted(() => {
 
     <div v-if="showCancelConfirm" class="modal-overlay">
       <div class="modal">
-        <p>Cancel this session? Progress will be recorded as cancelled.</p>
+        <p v-if="isOnBreak">Skip this break and go back to idle?</p>
+        <p v-else>Cancel this session? Progress will be recorded as cancelled.</p>
         <div class="modal-actions">
           <button @click="dismissCancel">Keep going</button>
-          <button class="danger" @click="confirmCancel">Cancel session</button>
+          <button class="danger" @click="confirmCancel">
+            {{ isOnBreak ? 'Skip break' : 'Cancel session' }}
+          </button>
         </div>
       </div>
     </div>
