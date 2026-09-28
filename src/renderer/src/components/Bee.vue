@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { BeeMood } from '../../../shared/types'
-import beeFocus from '../assets/bee/bee-focus.gif'
-import beeHappy from '../assets/bee/bee-happy.gif'
-import beeSad from '../assets/bee/bee-sad.gif'
+import beeFocus from '../assets/bee/bee-focus.webp'
+import beeHappy from '../assets/bee/bee-happy.webp'
+import beeSad from '../assets/bee/bee-sad.webp'
 
 const props = defineProps<{ mood: BeeMood }>()
 
