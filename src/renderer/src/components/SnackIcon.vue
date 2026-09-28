@@ -28,8 +28,8 @@ const imageForSnack: Record<SnackType, string> = {
 
 <style scoped>
 .snack-icon {
-  width: 104px;
-  height: 104px;
+  width: 76px;
+  height: 76px;
   object-fit: contain;
   -webkit-user-drag: none;
   user-select: none;
