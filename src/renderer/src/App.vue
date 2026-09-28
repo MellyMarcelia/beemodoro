@@ -104,6 +104,14 @@ const headerProgressColor = computed(() =>
   isOnBreak.value ? 'var(--color-dot-left)' : 'var(--color-snack-honey-drop)'
 )
 
+// The reset (↻) button only does something mid-session or mid-break.
+const canCancel = computed(
+  () =>
+    isOnBreak.value ||
+    activeSession.value?.status === 'running' ||
+    activeSession.value?.status === 'paused'
+)
+
 function formatClock(totalSeconds: number): string {
   const m = Math.floor(totalSeconds / 60)
   const s = totalSeconds % 60
@@ -365,12 +373,8 @@ onUnmounted(() => {
             <button
               class="reset-icon"
               aria-label="Cancel session"
-              :disabled="
-                !isOnBreak &&
-                (!activeSession ||
-                  activeSession.status === 'completed' ||
-                  activeSession.status === 'cancelled')
-              "
+              :class="{ hidden: !canCancel }"
+              :disabled="!canCancel"
               @click="requestCancel"
             >
               &#8635;
@@ -586,12 +590,17 @@ onUnmounted(() => {
   gap: 14px;
   padding: 20px;
   min-height: 0;
+  overflow: hidden;
 }
 
 .bee-drop-target {
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Fill the space between header and timer so the bee can shrink to fit. */
+  flex: 1;
+  min-height: 0;
+  width: 100%;
 }
 
 .prompt-label {
@@ -659,11 +668,9 @@ onUnmounted(() => {
   background: var(--color-snack-honey-drop, #cc9594);
 }
 
-.reset-icon:disabled {
-  cursor: default;
-  opacity: 0.3;
-  color: var(--color-text-muted);
-  border-color: var(--color-text-muted);
+/* Kept in the layout (not v-if) so the timer doesn't shift when it appears. */
+.reset-icon.hidden {
+  visibility: hidden;
 }
 
 .timer {
