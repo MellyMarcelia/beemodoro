@@ -126,12 +126,11 @@ app.whenReady().then(() => {
   const db = getDb()
   const recovered = recoverAbandonedSession(db)
   if (recovered) {
-    const settings = getSettings(db)
     logSessionEvent({
       type: 'session.cancelled',
       status: 'cancelled',
       snack: recovered.snack,
-      snackMinutes: settings.snackDurations[recovered.snack],
+      snackMinutes: Math.round(recovered.plannedSeconds / 60),
       description: recovered.description,
       durationSeconds: recovered.elapsedSeconds
     })
@@ -186,26 +185,24 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('session:resume', (_event, id: number) => resumeSession(getDb(), id))
   ipcMain.handle('session:cancel', (_event, id: number, elapsedSeconds: number) => {
-    const settings = getSettings(getDb())
     const ended = endSession(getDb(), id, 'cancelled', elapsedSeconds)
     logSessionEvent({
       type: 'session.cancelled',
       status: 'cancelled',
       snack: ended.snack,
-      snackMinutes: settings.snackDurations[ended.snack],
+      snackMinutes: Math.round(ended.plannedSeconds / 60),
       description: ended.description,
       durationSeconds: ended.elapsedSeconds
     })
     return ended
   })
   ipcMain.handle('session:complete', (_event, id: number, elapsedSeconds: number) => {
-    const settings = getSettings(getDb())
     const ended = endSession(getDb(), id, 'completed', elapsedSeconds)
     logSessionEvent({
       type: 'session.completed',
       status: 'completed',
       snack: ended.snack,
-      snackMinutes: settings.snackDurations[ended.snack],
+      snackMinutes: Math.round(ended.plannedSeconds / 60),
       description: ended.description,
       durationSeconds: ended.elapsedSeconds
     })

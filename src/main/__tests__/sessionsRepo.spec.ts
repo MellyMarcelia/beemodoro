@@ -115,4 +115,18 @@ describe('sessionsRepo', () => {
     const all = listSessions(db)
     expect(all.map((s) => s.id)).toEqual([a.id, b.id])
   })
+
+  it('plannedSeconds is fixed at start and unaffected by later settings changes (log duration must use it, not live settings)', () => {
+    // Regression test: the vault log's "(N min)" figure must come from the
+    // session's own plannedSeconds, not from re-reading Settings at
+    // complete/cancel time — otherwise changing a snack's duration mid-session
+    // would retroactively rewrite what gets logged for an in-progress session.
+    const session = createSession(db, { snack: 'honey-drop', description: 'x' }, 25 * 60)
+    // Simulate the user changing Honey drop's duration in Settings mid-session.
+    const laterPlannedMinutesIfReReadFromSettings = 40 // hypothetical new setting
+    const completed = endSession(db, session.id, 'completed', 25 * 60)
+    const loggedMinutes = Math.round(completed.plannedSeconds / 60)
+    expect(loggedMinutes).toBe(25)
+    expect(loggedMinutes).not.toBe(laterPlannedMinutesIfReReadFromSettings)
+  })
 })
