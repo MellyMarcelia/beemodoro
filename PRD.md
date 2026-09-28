@@ -68,8 +68,8 @@ Both are independent Electron apps, each with its own local SQLite database, sha
 
 ### 4.1 Core features
 - Main screen: a **bee area** in the center-left, a snack tray on the right.
-  - **Idle state**: the bee sits idle in its area, no timer visible.
-  - **Session running**: the same area switches to the **focus/timer view** — a progress bar, the bee's active animation, a countdown display, and session controls (pause/cancel) replace the idle bee.
+  - **Before a session starts**: instead of an idle bee, the panel shows a required "what will you focus on?" prompt with a single-line description field — the bee only appears once a session or break is active.
+  - **Session running**: the same area switches to the **focus/timer view** — a progress bar, the bee's active animation, a countdown display, and session controls (pause/cancel) replace the description prompt.
 - **Snack types (fixed set, customizable durations in Settings):**
 
   | Snack | Default duration |
@@ -79,24 +79,24 @@ Both are independent Electron apps, each with its own local SQLite database, sha
   | Flower | 45 min |
   | Honey jar | 90 min |
 
-- Dragging a snack onto the bee starts a focus session of that snack's duration.
+- Dragging a snack onto the description field (or the bee, once a session/break is active), or simply clicking a snack row, starts a focus session of that snack's duration.
 - Start, pause, resume, cancel, and complete focus sessions; take breaks between sessions. (Note: the assignment's "stop" requirement maps to **cancel** in Beemodoro — there is no separate "stop" action.)
-- Each session requires a short **description**. If the user leaves the description field empty, it defaults to the snack's name plus "session" (e.g. "Honey drop session") — the field is never blank in the app or in the log. A task-linking integration with Todobee is a documented future idea, not built now — see Non-Goals.
-- **Breaks**: after a session completes, a "Take a break" button appears; pressing it starts a break of the configured break duration (default **5 min**, adjustable in Settings alongside the snack durations). The bee switches to its resting pose for the break's duration; no honeycomb cell or log entry is created for the break itself.
+- Each session requires a short **description** — the field is validated as required and blocks starting a session (with an inline error message) if left empty; there is no default-fallback text. A task-linking integration with Todobee is a documented future idea, not built now — see Non-Goals.
+- **Breaks**: after a session completes, a "Take a break" button appears; pressing it starts a break of the configured break duration (default **5 min**, adjustable in Settings alongside the snack durations). The bee switches to its break pose for the break's duration; no honeycomb cell or log entry is created for the break itself. The reset/cancel control also works mid-break, ending it early and returning to idle.
 - Review completed sessions via the honeycomb (primary visual) and a simple filterable list (secondary, detail lookups).
-- **Lifetime stats line**: a small, always-visible readout showing **total focus time** and **total sessions completed**, computed directly from real session data — no separate scoring system. Optionally styled with a fun label ("grams of snacks eaten") for the total-time figure, per the hand-drawn concept sketch, but the underlying number is just real elapsed focus time (a unit-conversion/flavor-text choice, not a second metric).
+- **Lifetime stats line**: a small, always-visible readout showing **total focus time** and **total sessions completed**, computed directly from real session data — no separate scoring system.
 
 ### 4.2 Bee animation states
 The bee's animation/pose changes with session state:
 
 | State | Animation |
 |---|---|
-| Idle | default/neutral |
+| Idle | not shown — replaced by the "what will you focus on?" prompt |
 | Focus (running) | active/focused pose |
-| Paused | sleeping |
-| Break | resting |
-| Completed | happy |
-| Cancelled | sad |
+| Paused | a second, distinct pose (speech bubble still reads "zzzz...") |
+| Break | a second, distinct happy pose (speech bubble reads "sip sip...") |
+| Completed | happy pose |
+| Cancelled | sad pose |
 
 - Pausing excludes elapsed paused time from the logged/displayed duration.
 - Cancelling ends the session permanently (not resumable); the bee shows its sad pose for that action, then returns to idle.
@@ -113,16 +113,18 @@ The bee's animation/pose changes with session state:
 - One append-only file per day; never overwritten.
 
 ### 4.5 Testable acceptance criteria
-- [ ] Dragging a snack onto the bee starts a session of the correct duration for that snack type; a `session.started` entry is appended; the bee switches to its focus pose.
-- [ ] Starting a session with an empty description field defaults the description to "<Snack name> session" (e.g. "Honey drop session"), both in the running session and in the resulting log entry.
-- [ ] Pausing a session freezes the timer and switches the bee to its sleeping pose; resuming continues from the same elapsed time; no log entry is written for pause/resume.
+- [ ] Dragging a snack icon (or clicking a snack row) starts a session of the correct duration for that snack type; a `session.started` entry is appended; the bee switches to its focus pose.
+- [ ] Starting a session with an empty description field shows an inline validation error and does not start a session; a non-empty description is required in both the running session and the resulting log entry.
+- [ ] A progress bar in the Focus Time panel header fills proportionally to elapsed/planned time during a session, and to elapsed/planned time during a break (in a different colour); it is empty when idle.
+- [ ] Pausing a session freezes the timer and switches the bee to its paused pose; resuming continues from the same elapsed time; no log entry is written for pause/resume.
 - [ ] Cancelling a session (the app's equivalent of the assignment's "stop" action) stops it permanently, switches the bee to its sad pose, fills a cracked honeycomb cell, and appends a `session.cancelled` entry whose duration excludes any paused time.
 - [ ] Letting a session run to completion switches the bee to its happy pose, fills a colored honeycomb cell (color = snack type), and appends a `session.completed` entry with the actual (non-paused) duration and the linked description.
-- [ ] After a session completes, a "Take a break" button appears; pressing it starts a break of the configured break duration and switches the bee to its resting pose; no honeycomb cell or log entry is created for the break.
+- [ ] After a session completes, a "Take a break" button appears; pressing it starts a break of the configured break duration and switches the bee to its break pose; no honeycomb cell or log entry is created for the break.
+- [ ] The cancel/reset control is available and functional during a break too, ending the break early and returning to idle without creating a honeycomb cell or log entry.
 - [ ] Changing the break duration in Settings is respected by the next break started.
 - [ ] Changing a snack type's duration in Settings is respected by the next session started with that snack.
 - [ ] Honeycomb cells appear in chronological order (oldest to newest), filling row by row, matching the true order of sessions in SQLite.
-- [ ] The list view can filter completed/cancelled sessions by date, description, snack/duration, and status.
+- [ ] The list view can filter completed/cancelled sessions by date, description, snack, and status.
 - [ ] The lifetime stats line shows total focus time and total sessions completed, both matching the sum/count of real completed sessions in SQLite; cancelled sessions do not count toward either figure.
 - [ ] Completing a new session immediately updates the lifetime stats line (no restart required).
 - [ ] Force-quitting the app mid-session and relaunching shows that session auto-closed as `cancelled`, using the last persisted elapsed time (no silent data loss, no crash-induced gap in the honeycomb or log).
@@ -150,6 +152,8 @@ The bee's animation/pose changes with session state:
 - Natural-language quick-add parsing, recurring tasks, sub-tasks, reminders, or calendar views.
 - Team/shared projects, collaboration of any kind.
 - Custom/user-defined snack types beyond the fixed set with tunable durations.
+- An empty-description auto-fallback (e.g. "Honey drop session") — Beemodoro requires a non-empty description before a session can start; there is no default text.
+- Dedicated bee art for every mood in this build — paused and break moods reuse spare bee assets (the "Scared Bee" and second "Happy Feliz" GIF) rather than commissioning purpose-made poses for those two states.
 
 ## 6. Main user flows
 
@@ -163,11 +167,11 @@ The bee's animation/pose changes with session state:
 7. **Reopen from history.** Reopening a task on an old, finished note pulls it onto today's note instead of resurrecting the old one.
 
 ### 6.2 Beemodoro
-1. **Launch app.** Bee sits idle in the center; snack tray is visible on the right.
-2. **Start a session.** Drag a snack onto the bee and type a short description (required; left blank, it defaults to "<Snack name> session"). Timer starts; bee switches to focus pose; logged as `session.started`.
-3. **Focus.** User can pause (bee sleeps, timer frozen, resumable) or cancel — the app's equivalent of the assignment's "stop" action (bee turns sad, session ends permanently, cracked honeycomb cell, logged as `session.cancelled`).
+1. **Launch app.** The left panel shows a required "what will you focus on?" prompt; snack tray is visible on the right.
+2. **Start a session.** Type a description (required — starting with it empty shows an inline error and blocks the session), then drag a snack icon onto the field, or click a snack row. Timer starts; bee switches to focus pose; logged as `session.started`.
+3. **Focus.** User can pause (bee switches pose, timer frozen, resumable) or cancel — the app's equivalent of the assignment's "stop" action (bee turns sad, session ends permanently, cracked honeycomb cell, logged as `session.cancelled`).
 4. **Complete.** Timer reaches zero: bee turns happy, a colored honeycomb cell fills in, logged as `session.completed` with actual duration and description.
-5. **Break.** A "Take a break" button appears; pressing it starts a break of the configured duration (default 5 min). Bee rests; no honeycomb effect, no log entry.
+5. **Break.** A "Take a break" button appears; pressing it starts a break of the configured duration (default 5 min). Bee switches to its break pose; no honeycomb effect, no log entry; the break can be cancelled early via the same reset control.
 6. **Review.** Scroll the honeycomb chronologically for a visual history, or use the filterable list for specific lookups.
 7. **Close app.** Data already persisted continuously to SQLite; a force-quit mid-session is recovered as `cancelled` on next launch using the last saved elapsed time.
 
@@ -207,7 +211,7 @@ Alternative considered but not chosen: **PGlite** (Postgres-in-WASM) — appeali
 
 **Screen layout:**
 - Todobee: a single sticky-note canvas showing today's note front-and-center, with simple navigation (e.g. back/forward arrows or a small history list) to browse past finished notes; the history view itself renders as a wall board with pinned past notes and a static bee-at-a-desk illustration underneath.
-- Beemodoro: the bee's area sits center-left and doubles as both the idle bee display and the running session's focus/timer view (progress bar, animation, countdown, controls) — no separate screen/route needed to switch between them; a snack tray is docked to the right for dragging; the honeycomb/list history and lifetime stats line are reachable via a dedicated view (e.g. a tab or panel below/beside the main timer screen).
+- Beemodoro: the bee's area sits center-left and doubles as both the description prompt (before a session starts) and the running session's focus/timer view (progress bar, animation, countdown, controls) — no separate screen/route needed to switch between them; a snack tray is docked to the right for dragging; the honeycomb/list history and lifetime stats line are reachable via a dedicated view (a "Hive" toggle in the right panel).
 
 **Usability decisions:**
 - Todobee rollover and Beemodoro crash recovery are both computed **on launch**, never via a background timer — simpler, no sleep/wake edge cases, matches once-a-day usage patterns.

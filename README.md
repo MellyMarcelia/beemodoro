@@ -2,6 +2,8 @@
 
 A pixel-art Pomodoro/focus-timer app with a bee mascot — drag a snack onto the bee to start a focus session, watch its mood change as you work, and fill in a honeycomb of completed sessions over the semester. Built as a small offline Electron desktop app, the sibling to **[Todobee](https://github.com/MellyMarcelia/todobee)** (a to-do list app with the same bee theme).
 
+![Beemodoro idle screen: a two-panel pixel-art layout, a required "what will you focus on?" description field on the left, and a snack tray (Pollen, Honey drop, Flower) with lifetime stats on the right.](docs/screenshot.png)
+
 Beemodoro logs every session event (started / completed / cancelled) as plain, human-readable markdown into an Obsidian vault of your choosing — an honest, append-only record you actually own, not locked into the app. See `PRD.md` in this repo for the full product spec, technical decisions, and acceptance criteria.
 
 ## Requirements
@@ -41,11 +43,11 @@ npm run build:mac   # packaged macOS app (also build:win, build:linux)
 
 ## Using the app
 
-1. Type what you're focusing on in the left panel (required — the field must not be empty).
-2. Drag a snack from the right-hand tray onto the bee, or just click a snack row, to start a session of that snack's duration.
-3. While focused, the bee buzzes; **Pause** freezes the timer (excluded time never counts toward the logged duration) and puts the bee to sleep; **Resume** picks up where you left off.
-4. The small circular-arrow icon next to the timer cancels the session — you'll be asked to confirm first. A cancelled session ends permanently (no resuming) and fills a cracked cell in the honeycomb.
-5. Letting the timer run out completes the session, the bee turns happy, a coloured honeycomb cell fills in, and a **Take a break** button appears — pressing it starts a break of the configured length (default 5 minutes; adjustable in Settings) with the bee resting. Breaks are not logged and don't get a honeycomb cell.
+1. Type what you're focusing on in the left panel (required — the field must not be empty; trying to start a session without one shows an inline error).
+2. Drag a snack icon from the right-hand tray onto the description field (or, once a session/break is active, onto the bee), or just click a snack row, to start a session of that snack's duration. A progress bar in the "Focus Time" header fills as the session runs.
+3. While focused, the bee buzzes; **Pause** freezes the timer (excluded time never counts toward the logged duration) and switches the bee to its paused pose; **Resume** picks up where you left off.
+4. The reset/cancel button next to the timer cancels the session — you'll be asked to confirm first. A cancelled session ends permanently (no resuming) and fills a cracked cell in the honeycomb. It's only shown while there's actually something to cancel (a running/paused session, or a break in progress).
+5. Letting the timer run out completes the session, the bee turns happy, a coloured honeycomb cell fills in, and a **Take a break** button appears — pressing it starts a break of the configured length (default 5 minutes; adjustable in Settings) with the bee switching to its break pose and the header progress bar refilling in a different colour. Breaks are not logged and don't get a honeycomb cell, and can be cancelled early with the same reset button.
 6. Click **Hive** in the right panel to see the full honeycomb history plus a filterable list (by date, description, snack, and status); click **Back** to return to the snack tray.
 7. The stats box under the snack tray always shows your lifetime total sessions and total focus minutes, computed live from real completed sessions.
 
@@ -113,7 +115,8 @@ Your Obsidian vault logs are never touched by any of this — they're a separate
 ## Credits
 
 - **Fonts:** [Silkscreen](https://fonts.google.com/specimen/Silkscreen) (labels/buttons) and [VT323](https://fonts.google.com/specimen/VT323) (timer numerals), both via Google Fonts, licensed under the [SIL Open Font License](https://scripts.sil.org/OFL).
-- **Bee mood GIFs** (`bee-focus.gif`, `bee-happy.gif`, `bee-sad.gif`; unused extras `bee-happy-2.gif`, `bee-scared.gif` kept in `reference/bee-assets/`): "Bee Bebel", "Happy Feliz", and "Sad Bee" GIFs by PlayKids, sourced from Giphy.
+- **Bee mood art** (`src/renderer/src/assets/bee/`, background removed, converted to WebP): "Bee Bebel" (focus), "Happy Feliz" (completed), "Happy Feliz" #2 (break), "Sad Bee" (cancelled), and "Scared Bee" (paused) GIFs by PlayKids, sourced from Giphy. Untouched originals kept in `reference/bee-assets/`.
+- **Snack tray icons** (`src/renderer/src/assets/snacks/`, background removed, cropped, converted to WebP): illustrations provided by the author (Pollen, Honey drop, Flower, Honey jar). Untouched originals kept in `reference/snack-assets/`.
 - App icon, all UI/UX design, and all code: built by the author for this project.
 
 If you're the above asset creator and would like different credit or removal, please open an issue.
