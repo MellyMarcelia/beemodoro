@@ -382,7 +382,20 @@ onUnmounted(() => {
               :disabled="!canCancel"
               @click="requestCancel"
             >
-              &#8635;
+              <!-- viewBox nudged 1 unit right: the arrowhead makes the icon lopsided -->
+              <svg
+                viewBox="1 0 24 24"
+                width="26"
+                height="26"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="square"
+                aria-hidden="true"
+              >
+                <polyline points="23 4 23 10 17 10" />
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+              </svg>
             </button>
             <span class="timer">{{ timerLabel }}</span>
           </div>
@@ -664,7 +677,10 @@ onUnmounted(() => {
   background: var(--color-panel);
   color: var(--color-ink);
   opacity: 1;
-  font-size: 26px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   flex-shrink: 0;
 }
