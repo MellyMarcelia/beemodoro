@@ -1,0 +1,55 @@
+:root {
+  /* --- Beemodoro design tokens (see PRD + VISUAL SPEC) --- */
+
+  --color-page-bg: #f2cec8; /* dusty pink app background */
+  --color-panel: #fceeea; /* panel fill */
+  --color-ink: #1f1a1c; /* borders, timer numerals */
+  --color-text-muted: #6b5a5a;
+  --color-placeholder: #d3a9a0;
+
+  --color-dot-left: #8dbf5a; /* left panel header dot */
+  --color-dot-right: #eba9a6; /* right panel header dot */
+
+  --color-honey: #f4d784; /* START / RESUME button fill */
+  --color-rose: #cc9594; /* PAUSE button fill */
+  --color-icon-cell: #f2d9d4; /* snack row icon cell fill */
+
+  /* Snack colours, used for honeycomb cells */
+  --color-snack-pollen: #f4d784;
+  --color-snack-honey-drop: #e9a23b;
+  --color-snack-flower: #cc9594;
+  --color-snack-honey-jar: #8dbf5a;
+  --color-cell-cracked: #b9acac;
+
+  --outline-width: 2px;
+  --outline-width-thick: 4px;
+
+  --font-display: 'Silkscreen', monospace;
+  --font-timer: 'VT323', monospace;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+ul {
+  list-style: none;
+}
+
+button {
+  font-family: inherit;
+}
+
+body {
+  min-height: 100vh;
+  color: var(--color-ink);
+  background: var(--color-page-bg);
+  line-height: 1.4;
+  font-family: var(--font-display);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
