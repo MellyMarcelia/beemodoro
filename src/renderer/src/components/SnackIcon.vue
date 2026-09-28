@@ -16,7 +16,7 @@ const imageForSnack: Record<SnackType, string> = {
 </script>
 
 <template>
-  <img :src="imageForSnack[snack]" :alt="snack" class="snack-icon" />
+  <img :src="imageForSnack[snack]" :alt="snack" class="snack-icon" draggable="false" />
 </template>
 
 <style scoped>
@@ -24,5 +24,7 @@ const imageForSnack: Record<SnackType, string> = {
   width: 56px;
   height: 56px;
   object-fit: contain;
+  -webkit-user-drag: none;
+  user-select: none;
 }
 </style>
