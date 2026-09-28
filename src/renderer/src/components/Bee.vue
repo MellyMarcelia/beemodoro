@@ -10,9 +10,8 @@ import beeScared from '../assets/bee/bee-scared.webp'
 // The bee mascot: shows a different animation + speech bubble depending on its mood.
 const props = defineProps<{ mood: BeeMood }>()
 
-// Every mood that can actually render the Bee component has a matching GIF.
-// ('idle' has no asset because the idle state shows the "what will you focus
-// on?" prompt instead of the bee; this mapping never gets used for it.)
+// Which animation goes with which mood. "idle" has none because the bee
+// isn't shown then (the "what will you focus on?" box is shown instead).
 const assetForMood: Partial<Record<BeeMood, string>> = {
   focus: beeFocus,
   paused: beeScared,
@@ -36,7 +35,7 @@ const moodText: Record<BeeMood, string> = {
 
 <template>
   <div class="bee-area">
-    <!-- :key makes the GIF restart from the beginning whenever the mood changes -->
+    <!-- Restart the animation from the beginning whenever the mood changes -->
     <img v-if="asset" :key="asset" :src="asset" class="bee-gif" :class="mood" alt="" />
 
     <div class="speech-bubble">
@@ -56,7 +55,7 @@ const moodText: Record<BeeMood, string> = {
   min-height: 0;
 }
 
-/* Up to 260px, but shrinks with the panel so it never spills past its borders. */
+/* Up to 260px wide, but shrinks with the window so it never spills out of the panel. */
 .bee-gif {
   flex: 0 1 260px;
   min-height: 0;
@@ -75,7 +74,7 @@ const moodText: Record<BeeMood, string> = {
   text-transform: lowercase;
   font-size: 16px;
   letter-spacing: 0.02em;
-  /* Pixel-notched corners via clip-path, no border-radius. */
+  /* Snips the corners off so the bubble looks pixelated instead of rounded. */
   clip-path: polygon(
     8px 0,
     calc(100% - 8px) 0,

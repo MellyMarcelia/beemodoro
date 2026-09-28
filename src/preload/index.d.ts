@@ -1,8 +1,8 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
 import type { Session, NewSession, Settings, VaultStatus, SnackType, Stats } from '../shared/types'
 
-// Tells TypeScript what window.api and window.electron look like, so the
-// screen code gets autocomplete and type checks. (No real code here, just types.)
+// A description of the functions in preload/index.ts, so the code editor can
+// suggest them and catch typos. Nothing in this file actually runs.
 interface BeemodoroApi {
   getVaultStatus: () => Promise<VaultStatus>
   chooseVaultFolder: () => Promise<VaultStatus | null>

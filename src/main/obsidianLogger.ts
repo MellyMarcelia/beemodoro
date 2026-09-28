@@ -1,38 +1,35 @@
-// Append-only Obsidian logging. One bullet line per session event, appended
-// to <vault>/Beemodoro/Focus/YYYY/YYYY-MM/YYYY-MM-DD.md, the file for the
-// day the event actually happened (in the user's local timezone). Never
-// rewrites or truncates existing content: every write here uses
-// fs.appendFileSync, which only ever adds bytes to the end of the file.
-// Adapted from Todobee's obsidianLogger.ts.
+// Writes a diary of your focus sessions into your Obsidian vault. Each time a
+// session starts, finishes or is cancelled, one line is added to that day's
+// note, e.g. <vault>/Beemodoro/Focus/2026/2026-09/2026-09-28.md
+// Lines are only ever added to the end; nothing already written is changed.
 import { appendFileSync, existsSync, mkdirSync } from 'fs'
 import { dirname, join } from 'path'
 import { SNACK_LABELS } from '../shared/types'
 import type { SnackType } from '../shared/types'
 
-/** The three session events this logger knows how to write a line for. */
+// The three moments that get written down.
 export type SessionEventType = 'session.started' | 'session.completed' | 'session.cancelled'
 
 export interface SessionEvent {
   type: SessionEventType
-  /** Status label written into the line: 'running', 'completed', or 'cancelled'. */
+  // 'running', 'completed' or 'cancelled'
   status: string
   snack: SnackType
-  /** Snack duration in minutes, as configured when the session started. */
+  // How long the snack was set to (in minutes) when the session started
   snackMinutes: number
   description: string
-  /** Elapsed (non-paused) seconds; required on completed/cancelled, omitted on started. */
+  // Seconds actually spent focusing (paused time not included). Left out for
+  // "started" lines, since no time has passed yet.
   durationSeconds?: number
 }
 
-/** Pads a number to 2 digits, e.g. 7 -> "07". Used for both dates and times. */
+// Adds a leading zero when needed, e.g. 7 -> "07".
 function pad2(n: number): string {
   return String(n).padStart(2, '0')
 }
 
-/**
- * Reads a Date's calendar date/time fields as they appear in a given IANA
- * timezone (not the system timezone, not UTC).
- */
+// Splits a moment in time into year, month, day, hour, minute and second, as a
+// clock in the given time zone (like "Europe/Brussels") would show it.
 function partsInTimeZone(
   date: Date,
   timeZone: string
@@ -48,7 +45,7 @@ function partsInTimeZone(
     hour12: false
   })
   const parts = Object.fromEntries(formatter.formatToParts(date).map((p) => [p.type, p.value]))
-  // Weird quirk: some systems say "24" for midnight. We want "00".
+  // Some computers write midnight as "24". We want "00".
   const hour = parts.hour === '24' ? '00' : parts.hour
   return {
     year: parts.year,
@@ -60,7 +57,8 @@ function partsInTimeZone(
   }
 }
 
-/** The UTC offset for a timezone at a given instant, as "+02:00" / "-04:00". */
+// How far ahead of or behind world standard time (UTC) the time zone is at
+// that moment, written like "+02:00" or "-04:00".
 function utcOffset(date: Date, timeZone: string): string {
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone,
@@ -76,17 +74,15 @@ function utcOffset(date: Date, timeZone: string): string {
   return `${sign}${hours}:${minutes}`
 }
 
-/**
- * Formats an instant as "YYYY-MM-DD HH:MM:SS (Zone/Name, UTC+HH:MM)" in the
- * given timezone, the exact timestamp format required on every log line.
- */
+// The date and time shown at the start of every line, like
+// "2026-09-28 19:30:12 (Europe/Brussels, UTC+02:00)".
 export function formatTimestamp(date: Date, timeZone: string): string {
   const p = partsInTimeZone(date, timeZone)
   const offset = utcOffset(date, timeZone)
   return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second} (${timeZone}, UTC${offset})`
 }
 
-/** Formats a duration in seconds as "XmYYs", e.g. 25*60 -> "25m00s". */
+// Turns seconds into minutes and seconds, e.g. 1500 -> "25m00s".
 export function formatDuration(totalSeconds: number): string {
   const clamped = Math.max(0, Math.round(totalSeconds))
   const minutes = Math.floor(clamped / 60)
@@ -94,7 +90,7 @@ export function formatDuration(totalSeconds: number): string {
   return `${minutes}m${pad2(seconds)}s`
 }
 
-/** Formats one bullet line for a session event, in the exact spec format. */
+// Builds the full line of text written to the note for one event.
 export function formatLogLine(event: SessionEvent, date: Date, timeZone: string): string {
   const timestamp = formatTimestamp(date, timeZone)
   const snackLabel = SNACK_LABELS[event.snack]
@@ -107,10 +103,7 @@ export function formatLogLine(event: SessionEvent, date: Date, timeZone: string)
   return line
 }
 
-/**
- * The log file path for the day an event happened, in the given timezone,
- * <vault>/Beemodoro/Focus/YYYY/YYYY-MM/YYYY-MM-DD.md.
- */
+// Works out which note a line belongs in, based on the day it happened.
 export function logFilePath(vaultPath: string, date: Date, timeZone: string): string {
   const p = partsInTimeZone(date, timeZone)
   return join(
@@ -123,16 +116,12 @@ export function logFilePath(vaultPath: string, date: Date, timeZone: string): st
   )
 }
 
-/**
- * Appends one bullet line for a session event to the vault's log file for
- * the day it happened, creating any missing folders/file along the way.
- *
- * Safe by design, never throws or crashes the app:
- * - vaultPath is null (no vault chosen yet) -> silently does nothing.
- * - the vault folder doesn't exist on disk (moved/deleted) -> silently does
- *   nothing, rather than recreating a folder the user removed on purpose.
- * - any other filesystem error -> logged to the console but swallowed.
- */
+// Adds one line to today's note, creating the folders and note if needed.
+// This can never crash the app:
+// - no vault picked yet -> do nothing
+// - the vault folder was moved or deleted -> do nothing (we don't recreate a
+//   folder you may have removed on purpose)
+// - anything else goes wrong -> print the error for developers and carry on
 export function appendSessionEvent(
   vaultPath: string | null,
   event: SessionEvent,

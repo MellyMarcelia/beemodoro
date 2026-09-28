@@ -2,11 +2,9 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import type { Session, NewSession, Settings, VaultStatus, SnackType, Stats } from '../shared/types'
 
-// The preload is the go-between: the screen can't touch the database or the
-// file system directly, so it calls these functions (window.api.whatever),
-// and each one passes the message along to the matching handler in main/index.ts.
-
-// Custom APIs for renderer
+// The go-between. For safety, the screen isn't allowed to touch the database
+// or your files directly. Instead it calls these functions (window.api.___),
+// and each one passes the request along to the matching handler in main/index.ts.
 const api = {
   // Settings / Obsidian vault folder.
   getVaultStatus: (): Promise<VaultStatus> => ipcRenderer.invoke('vault:getStatus'),
@@ -33,9 +31,8 @@ const api = {
   getStats: (): Promise<Stats> => ipcRenderer.invoke('session:stats')
 }
 
-// Use `contextBridge` APIs to expose Electron APIs to
-// renderer only if context isolation is enabled, otherwise
-// just add to the DOM global.
+// Hands these functions to the screen. The first way is the safe, normal one;
+// the second is a fallback for when that safety feature is switched off.
 if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)

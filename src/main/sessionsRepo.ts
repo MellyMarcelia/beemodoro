@@ -1,10 +1,8 @@
-// Repository functions for the `sessions` table. Plain functions over a
-// plain better-sqlite3 Database (same pattern as Todobee's tasksRepo/
-// notesRepo) so timer/duration logic is testable without Electron.
+// Everything that saves or looks up focus sessions in the database.
 import type Database from 'better-sqlite3'
 import type { NewSession, Session, SessionStatus, SnackType } from '../shared/types'
 
-// What a row looks like straight out of the database (snake_case column names).
+// One session exactly as the database stores it (names written with_underscores).
 interface SessionRow {
   id: number
   snack: string
@@ -16,7 +14,7 @@ interface SessionRow {
   ended_at: string | null
 }
 
-// Translates a database row into the nicer camelCase shape the rest of the app uses.
+// Converts a database row into the shape the rest of the app uses.
 function toSession(row: SessionRow): Session {
   return {
     id: row.id,
@@ -30,7 +28,8 @@ function toSession(row: SessionRow): Session {
   }
 }
 
-/** Starts a new session in the `running` state. plannedSeconds is fixed at start (snack duration in minutes * 60). */
+// Saves a brand-new session as "running". Its planned length is locked in now,
+// so changing the snack's length later doesn't affect it.
 export function createSession(
   db: Database.Database,
   input: NewSession,
@@ -50,7 +49,8 @@ export function getSessionById(db: Database.Database, id: number): Session | nul
   return row ? toSession(row) : null
 }
 
-/** The session currently in progress (running or paused), if any; at most one at a time. */
+// The session going on right now (running or paused), or null. There's never
+// more than one.
 export function getActiveSession(db: Database.Database): Session | null {
   const row = db
     .prepare<[], SessionRow>(
@@ -60,7 +60,8 @@ export function getActiveSession(db: Database.Database): Session | null {
   return row ? toSession(row) : null
 }
 
-/** Persists the latest elapsed seconds; called every tick so crash recovery never loses more than a few seconds. */
+// Saves how many seconds you've focused so far. Called every few seconds, so if
+// the app crashes you only lose a moment of progress.
 export function updateElapsedSeconds(
   db: Database.Database,
   id: number,
@@ -69,19 +70,20 @@ export function updateElapsedSeconds(
   db.prepare('UPDATE sessions SET elapsed_seconds = ? WHERE id = ?').run(elapsedSeconds, id)
 }
 
-/** Marks a session paused (elapsed time already persisted separately). */
+// Marks a session as paused.
 export function pauseSession(db: Database.Database, id: number): Session {
   db.prepare("UPDATE sessions SET status = 'paused' WHERE id = ?").run(id)
   return getSessionById(db, id)!
 }
 
-/** Resumes a paused session. */
+// Marks a paused session as running again.
 export function resumeSession(db: Database.Database, id: number): Session {
   db.prepare("UPDATE sessions SET status = 'running' WHERE id = ?").run(id)
   return getSessionById(db, id)!
 }
 
-/** Ends a session as completed or cancelled, with a final elapsed-seconds figure (excludes paused time). */
+// Finishes a session as "completed" or "cancelled" and saves the final focus
+// time (paused time never counts).
 export function endSession(
   db: Database.Database,
   id: number,
@@ -100,7 +102,8 @@ export function listSessions(db: Database.Database): Session[] {
   return rows.map(toSession)
 }
 
-/** Lifetime stats: total completed sessions and total focus minutes; cancelled sessions never count. */
+// Your all-time totals: how many sessions you finished and how many minutes you
+// focused. Cancelled sessions don't count.
 export function getStats(db: Database.Database): {
   totalSessions: number
   totalFocusMinutes: number
@@ -116,12 +119,10 @@ export function getStats(db: Database.Database): {
   }
 }
 
-/**
- * Crash recovery: any session left `running`/`paused` at launch (the app
- * was force-quit mid-session) is auto-closed as `cancelled`, using the
- * elapsed seconds last persisted to SQLite; no silent data loss. Returns
- * the closed session, or null if nothing needed recovering.
- */
+// Runs when the app opens. If a session was still going when the app was
+// closed (it crashed or was force-quit), save it as cancelled with the time
+// that was last saved, so nothing silently disappears. Returns that session,
+// or null if there was nothing to clean up.
 export function recoverAbandonedSession(db: Database.Database): Session | null {
   const active = getActiveSession(db)
   if (!active) return null

@@ -6,8 +6,8 @@ import { computed, ref, watch } from 'vue'
 const props = defineProps<{
   label: string
   dotColor: string
-  // 0–1 fill of the header progress bar. Leave undefined for a plain
-  // header with no bar.
+  // How full the progress bar is, from 0 (empty) to 1 (full). Leave it out
+  // for a header with no bar.
   progress?: number
   progressColor?: string
 }>()
@@ -15,8 +15,8 @@ const props = defineProps<{
 // Keeps the progress between 0 and 1 so the bar never overflows.
 const clamped = computed(() => Math.min(1, Math.max(0, props.progress ?? 0)))
 
-// Animate forward progress smoothly, but jump straight back when the bar
-// resets (session → break, break → idle) instead of sliding backwards.
+// The bar slides smoothly as it fills up, but snaps straight back to empty
+// when it restarts (e.g. when a break begins) instead of sliding backwards.
 const animate = ref(true)
 watch(clamped, (next, prev) => {
   animate.value = next >= prev

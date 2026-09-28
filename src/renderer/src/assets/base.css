@@ -1,5 +1,5 @@
 :root {
-  /* --- Beemodoro design tokens (see PRD + VISUAL SPEC) --- */
+  /* The app's colours, border sizes and fonts, named once and reused everywhere. */
 
   --color-page-bg: #f2cec8; /* dusty pink app background */
   --color-panel: #fceeea; /* panel fill */

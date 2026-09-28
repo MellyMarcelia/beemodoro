@@ -1,10 +1,10 @@
-// Schema definition, split out from db.ts so it can be applied to a plain
-// better-sqlite3 Database (including an in-memory one in tests) without
-// touching Electron's app.getPath. Same pattern as Todobee.
+// Describes the tables inside the database. Kept in its own file so the tests
+// can build a throwaway database without starting the whole app.
 import type Database from 'better-sqlite3'
 
-// Two tables: `sessions` (one row per focus session) and `settings` (a simple
-// name -> value list). "IF NOT EXISTS" means it's fine to run this every launch.
+// Two tables: "sessions" (one row per focus session) and "settings" (a simple
+// list of name + value pairs). Tables that already exist are left untouched,
+// so this is safe to run every time the app opens.
 export function createSchema(db: Database.Database): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS sessions (

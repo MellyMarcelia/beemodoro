@@ -11,8 +11,8 @@ const vaultStatus = ref<VaultStatus | null>(null)
 const settings = ref<Settings | null>(null)
 const loadError = ref<string | null>(null)
 
-// Grabs the current vault + durations when the popup opens. If something
-// breaks, show the error instead of a blank screen.
+// Loads your current vault folder and lengths when the popup opens. If that
+// fails, show the error instead of a blank screen.
 async function loadAll(): Promise<void> {
   loadError.value = null
   try {
@@ -38,7 +38,8 @@ async function chooseFolder(): Promise<void> {
   }
 }
 
-// These two save a new number right away, but ignore junk like 0, negatives or empty boxes.
+// These two save a new number as soon as you change it, but ignore anything
+// that isn't a real positive number (like 0, a negative, or an empty box).
 async function updateSnackDuration(snack: SnackType, minutes: number): Promise<void> {
   if (!Number.isFinite(minutes) || minutes <= 0) return
   settings.value = await window.api.setSnackDuration(snack, minutes)

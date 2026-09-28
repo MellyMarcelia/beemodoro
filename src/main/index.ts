@@ -26,17 +26,16 @@ import {
 import type { NewSession, SnackType } from '../shared/types'
 import { SNACK_LABELS } from '../shared/types'
 
-// This is the "backstage" of the app (Electron's main process). It opens the
-// window, builds the menu, and answers every request the screen sends over
-// (start a session, save settings, etc.) by talking to the database and
-// writing to the Obsidian log.
+// The "backstage" of the app. It opens the window, builds the menu bar, and
+// answers every request the screen sends (start a session, save a setting...)
+// by reading or writing the database and the Obsidian notes.
 
-/** Appends one session event to the vault log, using the currently saved vault path. */
+// Writes one line to your Obsidian vault (if you've picked one).
 function logSessionEvent(event: SessionEvent): void {
   appendSessionEvent(getVaultStatus(getDb()).path, event)
 }
 
-// Makes the app window: its size, the pink background, and which page to load.
+// Creates the app window: its size, the pink background, and what to show in it.
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
     width: 1000,
@@ -65,7 +64,8 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
-  // In dev mode, load from the live dev server (hot reload). Otherwise load the built files.
+  // While developing, show the live version that updates as code changes.
+  // Otherwise, show the finished, packaged version.
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
@@ -73,10 +73,10 @@ function createWindow(): void {
   }
 }
 
-/** Cmd+, (or Ctrl+, elsewhere) opens Settings: the app's only custom menu item. */
+// Builds the menu bar. The only custom item is "Settings..." (Cmd+, on Mac,
+// Ctrl+, elsewhere). On Mac it sits under the app's name; elsewhere under File.
 function buildMenu(): void {
   const isMac = process.platform === 'darwin'
-  // On Mac, Settings goes in the app-name menu. Everywhere else it goes under File.
   const template: Electron.MenuItemConstructorOptions[] = [
     ...(isMac
       ? [
@@ -130,10 +130,8 @@ app.whenReady().then(() => {
 
   buildMenu()
 
-  // Crash recovery, run once at launch (Milestone 1 spec): a session left
-  // running/paused when the app was last closed (force-quit, crash) is
-  // auto-closed as cancelled using the last persisted elapsed time, and
-  // logged; no session is ever silently dropped.
+  // If the app crashed or was force-quit mid-session last time, save that
+  // session as cancelled and note it in Obsidian, so it isn't lost.
   const db = getDb()
   const recovered = recoverAbandonedSession(db)
   if (recovered) {
@@ -147,11 +145,13 @@ app.whenReady().then(() => {
     })
   }
 
-  // Settings (vault folder + snack/break durations).
-  // Each ipcMain.handle is like a little phone line: the screen calls
-  // 'vault:getStatus' (etc.) and whatever we return gets sent back to it.
+  // Below is every request the screen can make. Think of each one as a phone
+  // line: the screen calls e.g. 'vault:getStatus', and whatever we return is
+  // sent back as the answer.
+
+  // Settings: the vault folder and the snack and break lengths.
   ipcMain.handle('vault:getStatus', () => getVaultStatus(getDb()))
-  // Pops up the "pick a folder" dialog. Returns null if you hit cancel.
+  // Opens the "choose a folder" window. Returns null if you cancel.
   ipcMain.handle('vault:chooseFolder', async () => {
     const mainWindow = BrowserWindow.getFocusedWindow()
     const result = mainWindow
@@ -174,9 +174,10 @@ app.whenReady().then(() => {
     return getSettings(getDb())
   })
 
-  // Sessions: start / pause / resume / cancel / complete / tick.
+  // Sessions: start, save progress, pause, resume, cancel, complete, and list.
   ipcMain.handle('session:getActive', () => getActiveSession(getDb()))
-  // New session: look up how long this snack is, save it, write a "started" line to Obsidian.
+  // New session: look up how long this snack lasts, save the session, and
+  // write a "started" line to Obsidian.
   ipcMain.handle('session:start', (_event, input: NewSession) => {
     const settings = getSettings(getDb())
     const minutes = settings.snackDurations[input.snack]
@@ -191,7 +192,7 @@ app.whenReady().then(() => {
     })
     return created
   })
-  // The screen checks in every few seconds so we save progress (crash insurance).
+  // The screen checks in every few seconds so progress is saved in case of a crash.
   ipcMain.handle('session:tick', (_event, id: number, elapsedSeconds: number) => {
     updateElapsedSeconds(getDb(), id, elapsedSeconds)
   })
@@ -200,7 +201,8 @@ app.whenReady().then(() => {
     return pauseSession(getDb(), id)
   })
   ipcMain.handle('session:resume', (_event, id: number) => resumeSession(getDb(), id))
-  // Cancel and complete work the same way: close the session in the DB, then log it.
+  // Cancel and complete work the same way: close the session in the database,
+  // then write it to Obsidian.
   ipcMain.handle('session:cancel', (_event, id: number, elapsedSeconds: number) => {
     const ended = endSession(getDb(), id, 'cancelled', elapsedSeconds)
     logSessionEvent({
@@ -230,7 +232,7 @@ app.whenReady().then(() => {
 
   createWindow()
 
-  // Mac thing: clicking the dock icon with no windows open makes a new one.
+  // On Mac, clicking the Dock icon when no window is open opens a new one.
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })

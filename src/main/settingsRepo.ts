@@ -1,6 +1,5 @@
-// Repository functions for the key/value `settings` table: vault path plus
-// tunable snack durations and break length. Plain functions over a plain
-// better-sqlite3 Database so they're testable without Electron.
+// Reads and saves your settings: the Obsidian vault folder, how long each
+// snack lasts, and how long a break lasts.
 import type Database from 'better-sqlite3'
 import { existsSync } from 'fs'
 import type { Settings, SnackType, VaultStatus } from '../shared/types'
@@ -29,26 +28,25 @@ function setSetting(db: Database.Database, key: string, value: string): void {
   ).run(key, value)
 }
 
-/** Returns the saved Obsidian vault folder path, or null if none has been chosen yet. */
+// The Obsidian vault folder you picked, or null if you haven't picked one yet.
 export function getVaultPath(db: Database.Database): string | null {
   return getSetting(db, VAULT_PATH_KEY)
 }
 
-/** Saves the chosen Obsidian vault folder path, replacing any previous value. */
+// Remembers the vault folder you just picked (replacing the old one).
 export function setVaultPath(db: Database.Database, path: string): void {
   setSetting(db, VAULT_PATH_KEY, path)
 }
 
-/**
- * The saved vault path plus whether that folder still exists on disk right
- * now; the renderer uses `exists` to decide which warning banner to show.
- */
+// The saved vault folder, plus whether that folder can still be found on your
+// computer. The screen uses this to decide which warning to show, if any.
 export function getVaultStatus(db: Database.Database): VaultStatus {
   const path = getVaultPath(db)
   return { path, exists: path !== null && existsSync(path) }
 }
 
-/** Current settings: per-snack durations (minutes) and break length (minutes), falling back to defaults. */
+// Your snack and break lengths in minutes. Anything you never changed (or that
+// was saved as nonsense) falls back to the default.
 export function getSettings(db: Database.Database): Settings {
   const snackDurations = { ...DEFAULT_SNACK_DURATIONS }
   for (const snack of SNACK_ORDER) {
@@ -66,12 +64,12 @@ export function getSettings(db: Database.Database): Settings {
   return { snackDurations, breakMinutes }
 }
 
-/** Updates one snack type's duration (minutes). Respected by the next session started with that snack. */
+// Saves a new length for one snack. Only sessions started after this use it.
 export function setSnackDuration(db: Database.Database, snack: SnackType, minutes: number): void {
   setSetting(db, SNACK_DURATION_KEY_PREFIX + snack, String(minutes))
 }
 
-/** Updates the break duration (minutes). Respected by the next break started. */
+// Saves a new break length. Only breaks started after this use it.
 export function setBreakMinutes(db: Database.Database, minutes: number): void {
   setSetting(db, BREAK_MINUTES_KEY, String(minutes))
 }

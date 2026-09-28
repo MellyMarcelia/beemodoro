@@ -1,5 +1,4 @@
-// Database setup for Beemodoro's main process. better-sqlite3 is
-// synchronous, keeping the data layer simple (same pattern as Todobee).
+// Opens the small database file where Beemodoro saves your sessions and settings.
 import Database from 'better-sqlite3'
 import { app } from 'electron'
 import { join } from 'path'
@@ -8,16 +7,14 @@ import { createSchema } from './schema'
 // We only ever open the database once and reuse it after that.
 let db: Database.Database | null = null
 
-/**
- * Opens (or creates) the app's SQLite file in Electron's userData folder and
- * ensures the schema exists. Safe to call more than once.
- */
+// Opens the database (creating it the first time the app runs) and makes sure
+// its tables exist. Calling it again just hands back the one already open.
 export function getDb(): Database.Database {
   if (db) return db
 
   const dbPath = join(app.getPath('userData'), 'beemodoro.db')
   db = new Database(dbPath)
-  // WAL mode = faster, safer writes. Pretty standard SQLite setting.
+  // A common setting that makes saving faster and less likely to corrupt the file.
   db.pragma('journal_mode = WAL')
   createSchema(db)
 

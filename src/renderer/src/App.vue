@@ -9,14 +9,13 @@ import Hexagon from './components/Hexagon.vue'
 import SettingsScreen from './screens/SettingsScreen.vue'
 import { setSnackDragImage } from './snackDragImage'
 
-// Hi! This is the main screen of the app. Left panel = the timer and the bee,
-// right panel = the snack menu (or the Hive history). Pretty much all the
-// "what state are we in right now" logic lives in this file.
+// The main screen of the app. Left panel: the timer and the bee. Right panel:
+// the snack menu (or the Hive, your session history). Almost all of the
+// "what's happening right now?" logic lives in this file.
 
 // ---------------------------------------------------------------------------
-// Vault status banner (shown across the whole app, not just Settings):
-// core features must keep working even with no/broken vault (PRD §Vault
-// selection acceptance criteria).
+// Obsidian vault warning: a banner at the top if no vault folder is picked or
+// it can't be found. The rest of the app keeps working either way.
 const vaultStatus = ref<VaultStatus | null>(null)
 async function loadVaultStatus(): Promise<void> {
   try {
@@ -27,13 +26,13 @@ async function loadVaultStatus(): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// Settings overlay (Cmd+,).
+// Settings popup (opened with Cmd+,).
 const showSettings = ref(false)
-// The menu (in main/index.ts) pokes us with an 'open-settings' message, we just flip this on.
+// The menu bar (in main/index.ts) sends an 'open-settings' message; we show the popup.
 function openSettingsFromMenu(): void {
   showSettings.value = true
 }
-// When settings close, re-grab everything in case the user changed stuff in there.
+// When Settings closes, reload everything in case something was changed.
 function closeSettings(): void {
   showSettings.value = false
   loadVaultStatus()
@@ -41,13 +40,13 @@ function closeSettings(): void {
 }
 
 // ---------------------------------------------------------------------------
-// Session state.
+// What's happening right now, and what's shown on screen.
 const activeSession = ref<Session | null>(null) // the session going on right now (null = nothing going on)
 const description = ref('') // whatever's typed in the "what will you focus on?" box
 const elapsedSeconds = ref(0) // how many seconds you've focused so far (paused time doesn't count)
-const isOnBreak = ref(false)
+const isOnBreak = ref(false) // true while a break is counting down
 const breakRemaining = ref(0) // seconds left on the break countdown
-// Placeholder durations until the real ones load from settings.
+// Starting values, replaced by your saved lengths as soon as they load.
 const snackDurations = ref<Record<SnackType, number>>({
   pollen: 15,
   'honey-drop': 25,
@@ -55,22 +54,23 @@ const snackDurations = ref<Record<SnackType, number>>({
   'honey-jar': 90
 })
 const breakMinutes = ref(5)
-const stats = ref({ totalSessions: 0, totalFocusMinutes: 0 })
+const stats = ref({ totalSessions: 0, totalFocusMinutes: 0 }) // all-time totals under the snack menu
 const rightView = ref<'snacks' | 'hive'>('snacks') // which page the right panel is showing
 const history = ref<Session[]>([]) // every past session, for the Hive
 const showCancelConfirm = ref(false) // the "are you sure?" popup
 const descriptionError = ref(false) // turns on when you try to start without typing anything
-// Hive filters (empty string = "don't filter by this").
+// Hive filters (left empty = show everything).
 const filterDate = ref('')
 const filterDescription = ref('')
 const filterSnack = ref<SnackType | ''>('')
 const filterStatus = ref<'completed' | 'cancelled' | ''>('')
 
-// The every-second timers. We hang onto them so we can stop them later.
+// The once-a-second timers for focus and break. We keep hold of them so we
+// can stop them later.
 let tickHandle: ReturnType<typeof setInterval> | null = null
 let breakHandle: ReturnType<typeof setInterval> | null = null
 
-// These three just ask the main process for fresh data and stash it.
+// These three ask the backstage (main/index.ts) for fresh data and keep it.
 async function loadSettings(): Promise<void> {
   const settings = await window.api.getSettings()
   snackDurations.value = settings.snackDurations
@@ -101,8 +101,8 @@ const remainingSeconds = computed(() => {
   return Math.max(0, activeSession.value.plannedSeconds - elapsedSeconds.value)
 })
 
-// Header progress bar: fills with the focus session, then refills (in a
-// different colour) during the break. Empty when idle.
+// The progress bar at the top: fills up during a session, then fills again
+// (in green) during the break. Empty when nothing is going on.
 const headerProgress = computed(() => {
   if (isOnBreak.value) {
     const totalBreakSeconds = breakMinutes.value * 60
@@ -113,6 +113,7 @@ const headerProgress = computed(() => {
   return elapsedSeconds.value / activeSession.value.plannedSeconds
 })
 
+// Orange during a session, green during a break.
 const headerProgressColor = computed(() =>
   isOnBreak.value ? 'var(--color-dot-left)' : 'var(--color-snack-honey-drop)'
 )
@@ -137,11 +138,10 @@ const timerLabel = computed(() =>
   isOnBreak.value ? formatClock(breakRemaining.value) : formatClock(remainingSeconds.value)
 )
 
-// After a session ends (completed/cancelled), briefly show its result mood
-// before returning to idle: "cancelling ends the session ... then returns
-// to idle" (PRD §4.2).
+// When a session ends, the happy or sad bee stays on screen for a few seconds
+// before going back to the start. This is that short wait.
 let endedResultTimeout: ReturnType<typeof setTimeout> | null = null
-const showTakeBreak = ref(false)
+const showTakeBreak = ref(false) // shows the "Take a break" button after finishing
 
 // Stops the focus timer from counting.
 function stopTicking(): void {
@@ -152,8 +152,8 @@ function stopTicking(): void {
 }
 
 // The heartbeat of a session: every second, add 1 to the count. Every 5
-// seconds, save it to the database (so a crash only loses a few seconds).
-// When the count hits the planned time, the session is done.
+// seconds, save it (so a crash only loses a few seconds). When the count
+// reaches the planned time, the session is done.
 function startTicking(session: Session): void {
   stopTicking()
   elapsedSeconds.value = session.elapsedSeconds
@@ -210,7 +210,7 @@ async function startWithSnack(snack: SnackType): Promise<void> {
 function onSnackDragStart(event: DragEvent, snack: SnackType): void {
   if (!event.dataTransfer) return
   event.dataTransfer.setData('text/plain', snack)
-  // Drag just the snack artwork, not the square icon cell behind it.
+  // Drag just the snack picture, not the square box behind it.
   const img = (event.currentTarget as HTMLElement).querySelector('img')
   if (img) setSnackDragImage(event, img)
 }
@@ -222,12 +222,12 @@ function onBeeDrop(event: DragEvent): void {
   if (snack) startWithSnack(snack)
 }
 
-// The browser won't allow a drop unless we say "yes, you can drop here" on dragover.
+// Things can't be dropped anywhere by default, so this says "dropping here is OK".
 function onBeeDragOver(event: DragEvent): void {
   event.preventDefault()
 }
 
-// The big button: pauses if running, resumes if paused. Saves the change to the database too.
+// The big button: pauses if running, resumes if paused, and saves the change.
 async function pauseOrResume(): Promise<void> {
   if (!activeSession.value) return
   if (activeSession.value.status === 'running') {
@@ -286,8 +286,8 @@ function resetToIdle(): void {
   showTakeBreak.value = false
 }
 
-// Break time! Counts down once a second and ends itself at zero. Breaks only
-// live here on screen, they never get saved to the database.
+// Break time! Counts down once a second and ends itself at zero. Breaks are
+// only shown on screen; they're never saved or written to Obsidian.
 function startBreak(): void {
   if (endedResultTimeout) {
     clearTimeout(endedResultTimeout)
@@ -314,7 +314,7 @@ function stopBreak(): void {
   resetToIdle()
 }
 
-// Each snack has its own colour in base.css, this just builds the CSS variable name.
+// Each snack has its own colour (set in base.css); this looks it up by name.
 function snackColor(snack: SnackType): string {
   return `var(--color-snack-${snack})`
 }
@@ -341,7 +341,7 @@ function toggleRightView(): void {
   loadHistory()
 }
 
-// When the app opens: load everything, then start listening for the Settings shortcut.
+// When the app opens: load everything, then listen for the Settings shortcut.
 onMounted(async () => {
   loadVaultStatus()
   await loadSettings()
@@ -351,7 +351,7 @@ onMounted(async () => {
   window.electron.ipcRenderer.on('open-settings', openSettingsFromMenu)
 })
 
-// Cleanup so timers and listeners don't keep running in the background.
+// Tidy up when the screen closes so nothing keeps running in the background.
 onUnmounted(() => {
   stopTicking()
   if (breakHandle) clearInterval(breakHandle)
@@ -414,7 +414,7 @@ onUnmounted(() => {
               :class="{ hidden: !canCancel }"
               @click="showCancelConfirm = true"
             >
-              <!-- viewBox nudged 1 unit right: the arrowhead makes the icon lopsided -->
+              <!-- Shifted slightly so the arrow icon looks centred in its box -->
               <svg
                 viewBox="1 0 24 24"
                 width="26"
@@ -645,7 +645,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Fill the space between header and timer so the bee can shrink to fit. */
+  /* Fill the space between the header and the timer so the bee can shrink to fit. */
   flex: 1;
   min-height: 0;
   width: 100%;
@@ -718,7 +718,7 @@ onUnmounted(() => {
   background: var(--color-snack-honey-drop);
 }
 
-/* Kept in the layout (not v-if) so the timer doesn't shift when it appears. */
+/* Invisible but still taking up space, so the timer doesn't jump around when it appears. */
 .reset-icon.hidden {
   visibility: hidden;
 }
