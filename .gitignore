@@ -5,8 +5,10 @@ node_modules/
 dist/
 dist-electron/
 out/
-build/
 release/
+
+# Local test vault output (created when pointing the app at this repo dir during dev)
+/Beemodoro/
 
 # Environment
 .env
