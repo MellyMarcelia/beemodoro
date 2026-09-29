@@ -1,3 +1,5 @@
+// TypeScript settings for the screen (src/renderer). Starts from ready-made
+// settings and lists which files to check.
 {
   "extends": "@electron-toolkit/tsconfig/tsconfig.web.json",
   "include": [
@@ -9,6 +11,7 @@
   ],
   "compilerOptions": {
     "composite": true,
+    // Lets code write "@renderer/..." as a shortcut for "src/renderer/src/..."
     "paths": {
       "@renderer/*": ["./src/renderer/src/*"]
     }

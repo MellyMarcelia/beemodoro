@@ -1,4 +1,5 @@
-singleQuote: true
-semi: false
-printWidth: 100
-trailingComma: none
+# Settings for Prettier, the auto-formatter that tidies code ("npm run format").
+singleQuote: true # use 'single' quotes instead of "double"
+semi: false # no ; at the end of lines
+printWidth: 100 # wrap lines longer than 100 characters
+trailingComma: none # no extra comma after the last item in a list

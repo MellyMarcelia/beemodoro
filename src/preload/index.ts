@@ -1,3 +1,5 @@
+// Electron's tools for passing messages between the screen and the backstage,
+// plus the data shapes.
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import type { Session, NewSession, Settings, VaultStatus, SnackType, Stats } from '../shared/types'
@@ -41,6 +43,8 @@ if (process.contextIsolated) {
     console.error(error)
   }
 } else {
+  // (The "@ts-ignore" lines tell the code checker not to complain here; these
+  // are described properly in index.d.ts.)
   // @ts-ignore (define in dts)
   window.electron = electronAPI
   // @ts-ignore (define in dts)

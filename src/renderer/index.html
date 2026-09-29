@@ -1,8 +1,13 @@
 <!doctype html>
+<!-- The blank page the app window loads. The screen is built inside it by
+     src/main.ts (see the "app" box below). -->
 <html>
   <head>
     <meta charset="UTF-8" />
+    <!-- The name shown in the window's title bar -->
     <title>Beemodoro</title>
+    <!-- A safety rule: only load code, styles and pictures that come from the
+         app itself, never from the internet -->
     <meta
       http-equiv="Content-Security-Policy"
       content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
@@ -10,7 +15,9 @@
   </head>
 
   <body>
+    <!-- The empty box the whole app gets put into -->
     <div id="app"></div>
+    <!-- Starts the screen code -->
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

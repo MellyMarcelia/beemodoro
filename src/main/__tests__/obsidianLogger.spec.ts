@@ -1,3 +1,6 @@
+// Automatic checks for obsidianLogger.ts (the lines written to your Obsidian
+// notes). Run them with "npm test". Each describe('...') group tests one
+// function, and each it('...') line says in plain words what it checks.
 import { describe, it, expect, afterEach } from 'vitest'
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
@@ -127,9 +130,11 @@ describe('logFilePath', () => {
   })
 })
 
+// These tests write real files, into a temporary pretend vault folder.
 describe('appendSessionEvent', () => {
   let vaultDir: string
 
+  // After each test, delete the pretend vault so nothing is left behind.
   afterEach(() => {
     if (vaultDir) rmSync(vaultDir, { recursive: true, force: true })
   })

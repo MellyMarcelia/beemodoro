@@ -2,6 +2,7 @@
 // session starts, finishes or is cancelled, one line is added to that day's
 // note, e.g. <vault>/Beemodoro/Focus/2026/2026-09/2026-09-28.md
 // Lines are only ever added to the end; nothing already written is changed.
+// Tools for working with files and folders, plus the snack names.
 import { appendFileSync, existsSync, mkdirSync } from 'fs'
 import { dirname, join } from 'path'
 import { SNACK_LABELS } from '../shared/types'
@@ -10,6 +11,7 @@ import type { SnackType } from '../shared/types'
 // The three moments that get written down.
 export type SessionEventType = 'session.started' | 'session.completed' | 'session.cancelled'
 
+// Everything needed to write one line.
 export interface SessionEvent {
   type: SessionEventType
   // 'running', 'completed' or 'cancelled'
@@ -34,6 +36,8 @@ function partsInTimeZone(
   date: Date,
   timeZone: string
 ): { year: string; month: string; day: string; hour: string; minute: string; second: string } {
+  // Ask the computer's built-in date tool to read the clock in that time zone,
+  // always with two digits (e.g. "07") and a 24-hour clock.
   const formatter = new Intl.DateTimeFormat('en-CA', {
     timeZone,
     year: 'numeric',
@@ -44,6 +48,7 @@ function partsInTimeZone(
     second: '2-digit',
     hour12: false
   })
+  // Turn its answer into a simple lookup, like { year: "2026", month: "09", ... }.
   const parts = Object.fromEntries(formatter.formatToParts(date).map((p) => [p.type, p.value]))
   // Some computers write midnight as "24". We want "00".
   const hour = parts.hour === '24' ? '00' : parts.hour
@@ -64,10 +69,14 @@ function utcOffset(date: Date, timeZone: string): string {
     timeZone,
     timeZoneName: 'shortOffset'
   })
+  // The computer tells us something like "GMT+2" or "GMT-4:30"...
   const tzPart =
     formatter.formatToParts(date).find((p) => p.type === 'timeZoneName')?.value ?? 'GMT+0'
+  // ...so we pick out the +/- sign, the hours, and the minutes (if any)...
   const match = tzPart.match(/GMT([+-])(\d+)(?::(\d+))?/)
+  // (plain "GMT" with no number means zero difference)
   if (!match) return '+00:00'
+  // ...and put them back together as "+02:00".
   const sign = match[1]
   const hours = pad2(Number(match[2]))
   const minutes = pad2(Number(match[3] ?? '0'))
@@ -84,6 +93,7 @@ export function formatTimestamp(date: Date, timeZone: string): string {
 
 // Turns seconds into minutes and seconds, e.g. 1500 -> "25m00s".
 export function formatDuration(totalSeconds: number): string {
+  // Round to a whole second, and never show a negative time.
   const clamped = Math.max(0, Math.round(totalSeconds))
   const minutes = Math.floor(clamped / 60)
   const seconds = clamped % 60
@@ -94,9 +104,11 @@ export function formatDuration(totalSeconds: number): string {
 export function formatLogLine(event: SessionEvent, date: Date, timeZone: string): string {
   const timestamp = formatTimestamp(date, timeZone)
   const snackLabel = SNACK_LABELS[event.snack]
+  // The ** and ` marks are Obsidian's way of writing bold and code-style text.
   let line =
     `- **${timestamp}** -- \`${event.type}\` -- Status: ${event.status} -- ` +
     `${snackLabel} (${event.snackMinutes} min) -- Description: "${event.description}"`
+  // Only finished and cancelled sessions get a duration at the end.
   if (event.durationSeconds !== undefined) {
     line += ` -- Duration: ${formatDuration(event.durationSeconds)}`
   }
@@ -133,7 +145,9 @@ export function appendSessionEvent(
 
   try {
     const filePath = logFilePath(vaultPath, date, timeZone)
+    // Make the Beemodoro/Focus/year/month folders if they don't exist yet...
     mkdirSync(dirname(filePath), { recursive: true })
+    // ...then add the line to the end of the day's note (creating it if needed).
     appendFileSync(filePath, formatLogLine(event, date, timeZone) + '\n', 'utf-8')
   } catch (error) {
     console.error('Failed to append Obsidian log line:', error)

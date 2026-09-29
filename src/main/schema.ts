@@ -6,6 +6,16 @@ import type Database from 'better-sqlite3'
 // list of name + value pairs). Tables that already exist are left untouched,
 // so this is safe to run every time the app opens.
 export function createSchema(db: Database.Database): void {
+  // What each column in "sessions" holds:
+  //   id              - a number that's different for every session, handed out automatically
+  //   snack           - which snack it was (like 'pollen')
+  //   planned_seconds - how long it was meant to last
+  //   elapsed_seconds - how long you actually focused (starts at 0)
+  //   description     - what you said you'd work on
+  //   status          - running, paused, completed or cancelled (nothing else is allowed)
+  //   started_at      - when it started (filled in automatically)
+  //   ended_at        - when it ended (empty until then)
+  // In "settings", "key" is the setting's name and "value" is what it's set to.
   db.exec(`
     CREATE TABLE IF NOT EXISTS sessions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -11,6 +11,7 @@ const VAULT_PATH_KEY = 'vaultPath'
 const BREAK_MINUTES_KEY = 'breakMinutes'
 const SNACK_DURATION_KEY_PREFIX = 'snackDuration:'
 
+// One setting as the database hands it back: just its value, as text.
 interface SettingRow {
   value: string | null
 }
@@ -48,6 +49,7 @@ export function getVaultStatus(db: Database.Database): VaultStatus {
 // Your snack and break lengths in minutes. Anything you never changed (or that
 // was saved as nonsense) falls back to the default.
 export function getSettings(db: Database.Database): Settings {
+  // Start with the defaults, then swap in each snack length you've saved.
   const snackDurations = { ...DEFAULT_SNACK_DURATIONS }
   for (const snack of SNACK_ORDER) {
     const raw = getSetting(db, SNACK_DURATION_KEY_PREFIX + snack)
@@ -56,6 +58,7 @@ export function getSettings(db: Database.Database): Settings {
       if (Number.isFinite(minutes) && minutes > 0) snackDurations[snack] = minutes
     }
   }
+  // Same idea for the break: use the saved length if it's a real positive number.
   const rawBreak = getSetting(db, BREAK_MINUTES_KEY)
   const breakMinutes =
     rawBreak !== null && Number.isFinite(Number(rawBreak)) && Number(rawBreak) > 0

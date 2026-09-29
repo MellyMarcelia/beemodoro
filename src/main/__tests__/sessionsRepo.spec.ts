@@ -1,3 +1,5 @@
+// Automatic checks for sessionsRepo.ts (saving and loading focus sessions).
+// Run them with "npm test". Each it('...') line says in plain words what it checks.
 import { describe, it, expect, beforeEach } from 'vitest'
 import Database from 'better-sqlite3'
 import { createSchema } from '../schema'
@@ -13,6 +15,8 @@ import {
   listSessions
 } from '../sessionsRepo'
 
+// Makes a throwaway database that only lives in memory, so tests never touch
+// your real data.
 function makeDb(): Database.Database {
   const db = new Database(':memory:')
   createSchema(db)
@@ -22,6 +26,7 @@ function makeDb(): Database.Database {
 describe('sessionsRepo', () => {
   let db: Database.Database
 
+  // Every test starts with a fresh, empty database.
   beforeEach(() => {
     db = makeDb()
   })

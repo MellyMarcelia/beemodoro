@@ -1,5 +1,7 @@
 /* The pixel-style fonts are stored inside the app, so it works without internet. */
 
+/* Silkscreen, normal weight: the main pixel font for most text.
+   "swap" means: show a plain font until this one has loaded, rather than nothing. */
 @font-face {
   font-family: 'Silkscreen';
   font-style: normal;
@@ -8,6 +10,7 @@
   src: url('./fonts/Silkscreen-Regular.woff2') format('woff2');
 }
 
+/* Silkscreen, bold: used whenever text is set to bold. */
 @font-face {
   font-family: 'Silkscreen';
   font-style: normal;
@@ -16,6 +19,7 @@
   src: url('./fonts/Silkscreen-Bold.woff2') format('woff2');
 }
 
+/* VT323: the old-computer-screen font used for the big clock. */
 @font-face {
   font-family: 'VT323';
   font-style: normal;

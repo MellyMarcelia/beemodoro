@@ -4,8 +4,8 @@
   --color-page-bg: #f2cec8; /* dusty pink app background */
   --color-panel: #fceeea; /* panel fill */
   --color-ink: #1f1a1c; /* borders, timer numerals */
-  --color-text-muted: #6b5a5a;
-  --color-placeholder: #d3a9a0;
+  --color-text-muted: #6b5a5a; /* softer grey-brown for less important text */
+  --color-placeholder: #d3a9a0; /* faded example text in empty boxes */
 
   --color-dot-left: #8dbf5a; /* left panel header dot */
   --color-dot-right: #eba9a6; /* right panel header dot */
@@ -19,11 +19,14 @@
   --color-snack-honey-drop: #e9a23b;
   --color-snack-flower: #cc9594;
   --color-snack-honey-jar: #8dbf5a;
-  --color-cell-cracked: #b9acac;
+  --color-cell-cracked: #b9acac; /* grey for cancelled sessions in the Hive */
 
+  /* Border thicknesses: thin for most outlines, thick for the main dividers */
   --outline-width: 2px;
   --outline-width-thick: 4px;
 
+  /* Fonts: Silkscreen for most text, VT323 for the big clock. "monospace" is
+     the backup if they fail to load. */
   --font-display: 'Silkscreen', monospace;
   --font-timer: 'VT323', monospace;
 }
@@ -36,15 +39,18 @@
   margin: 0;
 }
 
+/* Lists: no bullet points and no indent. */
 ul {
   list-style: none;
   padding: 0;
 }
 
+/* Buttons use the same font as the rest of the app (browsers use a different one by default). */
 button {
   font-family: inherit;
 }
 
+/* The page itself: pink background, dark text, pixel font, and smoother-looking letters. */
 body {
   min-height: 100vh;
   color: var(--color-ink);

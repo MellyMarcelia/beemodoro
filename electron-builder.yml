@@ -1,7 +1,13 @@
+# Settings for packaging the app into something you can install
+# ("npm run build:mac", "build:win", "build:linux").
+
+# The app's unique ID and the name people see.
 appId: com.beemodoro.app
 productName: Beemodoro
+# Where the extra packaging files (like entitlements.mac.plist) live.
 directories:
   buildResources: build
+# Leave out files the finished app doesn't need (the "!" means "not").
 files:
   - '!**/.vscode/*'
   - '!src/*'
@@ -9,9 +15,12 @@ files:
   - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+# Keep these outside the app's bundled archive, since they need to be read as
+# normal files (the database library won't work otherwise).
 asarUnpack:
   - resources/**
   - node_modules/better-sqlite3/**
+# Windows: the program name, and the installer's name and shortcuts.
 win:
   executableName: Beemodoro
 nsis:
@@ -19,13 +28,18 @@ nsis:
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
+# Mac: extra permissions, and the message shown when the app asks to use your
+# Documents folder. "notarize: false" skips Apple's online check (needs a paid
+# developer account).
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
     - NSDocumentsFolderUsageDescription: Beemodoro writes your focus session log into the Obsidian vault folder you choose, which may be inside Documents.
   notarize: false
+# The name of the Mac installer file.
 dmg:
   artifactName: ${name}-${version}.${ext}
+# Linux: which kinds of installer to make, and where it shows in app menus.
 linux:
   target:
     - AppImage
@@ -33,6 +47,8 @@ linux:
     - deb
   maintainer: electronjs.org
   category: Utility
+# The name of the Linux AppImage file.
 appImage:
   artifactName: ${name}-${version}.${ext}
+# Don't rebuild the downloaded packages while packaging (already done at install).
 npmRebuild: false

@@ -12,6 +12,8 @@ let db: Database.Database | null = null
 export function getDb(): Database.Database {
   if (db) return db
 
+  // The file lives in the app's own private folder on your computer
+  // (on a Mac: ~/Library/Application Support/beemodoro).
   const dbPath = join(app.getPath('userData'), 'beemodoro.db')
   db = new Database(dbPath)
   // A common setting that makes saving faster and less likely to corrupt the file.

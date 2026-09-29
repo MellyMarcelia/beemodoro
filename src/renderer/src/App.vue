@@ -1,4 +1,7 @@
 <script setup lang="ts">
+// The tools this file borrows: helpers from Vue (the toolkit that builds the
+// screen), the shared data shapes and snack names, the smaller screen pieces
+// (bee, title strip, snack picture, hexagon, settings popup), and the drag helper.
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import type { BeeMood, Session, SnackType, VaultStatus } from '../../shared/types'
 import { SNACK_LABELS, SNACK_ORDER } from '../../shared/types'
@@ -16,7 +19,9 @@ import { setSnackDragImage } from './snackDragImage'
 // ---------------------------------------------------------------------------
 // Obsidian vault warning: a banner at the top if no vault folder is picked or
 // it can't be found. The rest of the app keeps working either way.
-const vaultStatus = ref<VaultStatus | null>(null)
+const vaultStatus = ref<VaultStatus | null>(null) // the saved folder, and whether it still exists
+// Asks the backstage (main/index.ts) about the vault folder. If that fails,
+// just note the error for developers; the banner simply won't show.
 async function loadVaultStatus(): Promise<void> {
   try {
     vaultStatus.value = await window.api.getVaultStatus()
@@ -27,7 +32,7 @@ async function loadVaultStatus(): Promise<void> {
 
 // ---------------------------------------------------------------------------
 // Settings popup (opened with Cmd+,).
-const showSettings = ref(false)
+const showSettings = ref(false) // true while the Settings popup is open
 // The menu bar (in main/index.ts) sends an 'open-settings' message; we show the popup.
 function openSettingsFromMenu(): void {
   showSettings.value = true
@@ -53,17 +58,17 @@ const snackDurations = ref<Record<SnackType, number>>({
   flower: 45,
   'honey-jar': 90
 })
-const breakMinutes = ref(5)
+const breakMinutes = ref(5) // how long a break lasts, in minutes
 const stats = ref({ totalSessions: 0, totalFocusMinutes: 0 }) // all-time totals under the snack menu
 const rightView = ref<'snacks' | 'hive'>('snacks') // which page the right panel is showing
 const history = ref<Session[]>([]) // every past session, for the Hive
 const showCancelConfirm = ref(false) // the "are you sure?" popup
 const descriptionError = ref(false) // turns on when you try to start without typing anything
 // Hive filters (left empty = show everything).
-const filterDate = ref('')
-const filterDescription = ref('')
-const filterSnack = ref<SnackType | ''>('')
-const filterStatus = ref<'completed' | 'cancelled' | ''>('')
+const filterDate = ref('') // only show sessions from this day
+const filterDescription = ref('') // only show sessions whose description contains this text
+const filterSnack = ref<SnackType | ''>('') // only show this snack
+const filterStatus = ref<'completed' | 'cancelled' | ''>('') // only show finished or only cancelled
 
 // The once-a-second timers for focus and break. We keep hold of them so we
 // can stop them later.
@@ -71,16 +76,20 @@ let tickHandle: ReturnType<typeof setInterval> | null = null
 let breakHandle: ReturnType<typeof setInterval> | null = null
 
 // These three ask the backstage (main/index.ts) for fresh data and keep it.
+
+// Your saved snack and break lengths.
 async function loadSettings(): Promise<void> {
   const settings = await window.api.getSettings()
   snackDurations.value = settings.snackDurations
   breakMinutes.value = settings.breakMinutes
 }
 
+// Your all-time totals (shown under the snack menu).
 async function loadStats(): Promise<void> {
   stats.value = await window.api.getStats()
 }
 
+// Every past session (shown in the Hive).
 async function loadHistory(): Promise<void> {
   history.value = await window.api.listSessions()
 }
@@ -155,10 +164,11 @@ function stopTicking(): void {
 // seconds, save it (so a crash only loses a few seconds). When the count
 // reaches the planned time, the session is done.
 function startTicking(session: Session): void {
-  stopTicking()
+  stopTicking() // make sure there's never two timers running at once
   elapsedSeconds.value = session.elapsedSeconds
-  let sinceLastPersist = 0
+  let sinceLastPersist = 0 // seconds since we last saved
   tickHandle = setInterval(async () => {
+    // Paused or finished? Don't count.
     if (!activeSession.value || activeSession.value.status !== 'running') return
     elapsedSeconds.value += 1
     sinceLastPersist += 1
@@ -231,10 +241,12 @@ function onBeeDragOver(event: DragEvent): void {
 async function pauseOrResume(): Promise<void> {
   if (!activeSession.value) return
   if (activeSession.value.status === 'running') {
+    // Pausing: stop the clock, then save the time so far and the new "paused" state.
     stopTicking()
     const updated = await window.api.pauseSession(activeSession.value.id, elapsedSeconds.value)
     activeSession.value = updated
   } else if (activeSession.value.status === 'paused') {
+    // Resuming: save the "running" state, then start the clock again.
     const updated = await window.api.resumeSession(activeSession.value.id)
     activeSession.value = updated
     startTicking(updated)
@@ -323,6 +335,8 @@ function snackColor(snack: SnackType): string {
 // (completed or cancelled), never the one that's still going.
 const filteredHistory = computed(() =>
   history.value.filter((session) => {
+    // Each line below throws the session out if it doesn't match a filter
+    // you've filled in. The date check compares just the "2026-09-28" part.
     if (filterDate.value && session.startedAt.slice(0, 10) !== filterDate.value) return false
     if (
       filterDescription.value &&
@@ -348,17 +362,21 @@ onMounted(async () => {
   await loadStats()
   await loadHistory()
   await loadActiveSession()
+  // When the menu bar says "open-settings", show the Settings popup.
   window.electron.ipcRenderer.on('open-settings', openSettingsFromMenu)
 })
 
 // Tidy up when the screen closes so nothing keeps running in the background.
 onUnmounted(() => {
+  // Stop both timers, and stop listening for the Settings shortcut.
   stopTicking()
   if (breakHandle) clearInterval(breakHandle)
   window.electron.ipcRenderer.removeListener('open-settings', openSettingsFromMenu)
 })
 </script>
 
+<!-- What you actually see on screen. Lines with v-if / v-else only show up
+     when their condition is true, so different bits appear at different times. -->
 <template>
   <div class="app-shell">
     <!-- Yellow nag banner at the top if Obsidian logging isn't set up or the folder went missing -->
@@ -372,6 +390,7 @@ onUnmounted(() => {
     <div class="panels">
       <!-- LEFT PANEL: FOCUS TIME -->
       <section class="panel panel-left">
+        <!-- Title strip with the green dot and the progress bar -->
         <PanelHeader
           label="Focus Time"
           dot-color="var(--color-dot-left)"
@@ -383,6 +402,7 @@ onUnmounted(() => {
           <!-- Nothing going on: ask what you'll focus on (you can drop a snack on the box too) -->
           <template v-if="!activeSession && !isOnBreak">
             <p class="prompt-label">What will you focus on?</p>
+            <!-- Typing clears the red error; dropping a snack here starts a session -->
             <input
               v-model="description"
               class="description-input"
@@ -408,6 +428,7 @@ onUnmounted(() => {
         <!-- Bottom strip: cancel button + big clock on the left, action button on the right -->
         <div class="bottom-bar">
           <div class="timer-side">
+            <!-- The ↻ button: opens the "are you sure?" popup. Hidden when there's nothing to cancel -->
             <button
               class="reset-icon"
               aria-label="Cancel session"
@@ -429,9 +450,11 @@ onUnmounted(() => {
                 <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
               </svg>
             </button>
+            <!-- The big clock -->
             <span class="timer">{{ timerLabel }}</span>
           </div>
-          <!-- The big button changes depending on the state: on break / pause / resume / take a break / done -->
+          <!-- The big button changes depending on the state: on break / pause / resume / take a break / done.
+               When nothing is going on, none of these match, so there's no button (you start by picking a snack). -->
           <button v-if="isOnBreak" class="action-button break-active" disabled>On break</button>
           <button
             v-else-if="activeSession?.status === 'running'"
@@ -474,6 +497,7 @@ onUnmounted(() => {
           dot-color="var(--color-dot-right)"
         >
           <template #action>
+            <!-- The Hive / Back button, hidden mid-session -->
             <button v-if="!activeSession || isOnBreak" class="hive-toggle" @click="toggleRightView">
               {{ rightView === 'hive' ? 'Back' : 'Hive' }}
             </button>
@@ -496,6 +520,7 @@ onUnmounted(() => {
                 :cracked="session.status === 'cancelled'"
               />
             </div>
+            <!-- Filters: date, description, snack, status -->
             <div class="filter-row">
               <input
                 v-model="filterDate"
@@ -521,6 +546,7 @@ onUnmounted(() => {
                 <option value="cancelled">Cancelled</option>
               </select>
             </div>
+            <!-- The list of past sessions that match the filters -->
             <ul class="history-list">
               <li v-for="session in filteredHistory" :key="session.id" class="history-row">
                 <span class="history-date">{{ session.startedAt.slice(0, 10) }}</span>
@@ -535,6 +561,7 @@ onUnmounted(() => {
           <!-- Snack menu: click a snack or drag it to the left panel to start. Stats underneath. -->
           <template v-else>
             <ul class="snack-list">
+              <!-- One row per snack. Clicking anywhere on the row starts it; only the picture box can be dragged -->
               <li
                 v-for="snack in SNACK_ORDER"
                 :key="snack"
@@ -553,6 +580,7 @@ onUnmounted(() => {
               </li>
             </ul>
 
+            <!-- Your all-time totals -->
             <div class="stats-box">
               <div class="stats-row">
                 <span>Total sessions</span>
@@ -589,7 +617,10 @@ onUnmounted(() => {
   </div>
 </template>
 
+<!-- How everything looks: colours, sizes, spacing. Each block is named after
+     the class="..." it styles in the section above. -->
 <style scoped>
+/* The whole window: some breathing room around the edges, and everything stacked top to bottom. */
 .app-shell {
   width: 100%;
   height: 100%;
@@ -599,6 +630,7 @@ onUnmounted(() => {
   gap: 12px;
 }
 
+/* The pale yellow warning strip at the top about the Obsidian folder. */
 .vault-banner {
   background: #fff3d6;
   border: var(--outline-width) solid var(--color-ink);
@@ -606,6 +638,7 @@ onUnmounted(() => {
   font-size: 13px;
 }
 
+/* The row that holds the two big panels side by side, with a gap between them. */
 .panels {
   flex: 1;
   display: flex;
@@ -613,6 +646,7 @@ onUnmounted(() => {
   min-height: 0;
 }
 
+/* What both panels have in common: light fill, dark outline, contents stacked top to bottom. */
 .panel {
   background: var(--color-panel);
   border: var(--outline-width) solid var(--color-ink);
@@ -621,14 +655,17 @@ onUnmounted(() => {
   min-height: 0;
 }
 
+/* The left panel takes up about two-thirds of the width... */
 .panel-left {
   flex: 0 0 65%;
 }
 
+/* ...and the right panel gets whatever space is left. */
 .panel-right {
   flex: 1;
 }
 
+/* The middle of the left panel (between the title strip and the clock). Everything in it sits in the centre. */
 .left-body {
   flex: 1;
   display: flex;
@@ -641,6 +678,7 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
+/* The area around the bee. You can drop a snack here to start. */
 .bee-drop-target {
   display: flex;
   align-items: center;
@@ -651,6 +689,7 @@ onUnmounted(() => {
   width: 100%;
 }
 
+/* The small grey "What will you focus on?" text above the typing box. */
 .prompt-label {
   text-transform: uppercase;
   letter-spacing: 0.02em;
@@ -658,6 +697,7 @@ onUnmounted(() => {
   font-size: 14px;
 }
 
+/* The box where you type what you'll focus on. No box outline, just a line underneath, text centred. */
 .description-input {
   width: 60%;
   min-width: 260px;
@@ -672,19 +712,23 @@ onUnmounted(() => {
   outline: none;
 }
 
+/* The faded example text ("e.g. finish my report") shown before you type. */
 .description-input::placeholder {
   color: var(--color-placeholder);
 }
 
+/* The line under the box turns pink-red if you try to start without typing anything. */
 .description-input.error {
   border-bottom-color: var(--color-rose);
 }
 
+/* The small pink-red message under the box saying what's missing. */
 .description-error {
   color: var(--color-rose);
   font-size: 12px;
 }
 
+/* The strip along the bottom of the left panel: clock on the left, big button on the right. */
 .bottom-bar {
   height: 190px;
   min-height: 190px;
@@ -692,6 +736,7 @@ onUnmounted(() => {
   display: flex;
 }
 
+/* The left part of that strip: the ↻ button and the clock, side by side and centred. */
 .timer-side {
   flex: 0 0 62%;
   display: flex;
@@ -700,6 +745,7 @@ onUnmounted(() => {
   gap: 20px;
 }
 
+/* The small square ↻ (cancel) button next to the clock. */
 .reset-icon {
   width: 48px;
   height: 48px;
@@ -714,6 +760,7 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
+/* It turns orange when your mouse is over it. */
 .reset-icon:hover {
   background: var(--color-snack-honey-drop);
 }
@@ -723,12 +770,14 @@ onUnmounted(() => {
   visibility: hidden;
 }
 
+/* The big countdown numbers, in the retro computer font. */
 .timer {
   font-family: var(--font-timer);
   font-size: 88px;
   line-height: 1;
 }
 
+/* The big button on the right of the bottom strip (Pause, Resume, Take a break...). This is the look they all share. */
 .action-button {
   flex: 1;
   border: none;
@@ -741,19 +790,23 @@ onUnmounted(() => {
   color: var(--color-ink);
 }
 
+/* Yellow version: Resume and Take a break. */
 .action-button.start {
   background: var(--color-honey);
 }
 
+/* Pink version: Pause (and the Completed / Cancelled messages). */
 .action-button.pause {
   background: var(--color-rose);
 }
 
+/* The "On break" version: a softer colour, and the mouse doesn't turn into a hand since you can't click it. */
 .action-button.break-active {
   background: var(--color-icon-cell);
   cursor: default;
 }
 
+/* Everything under the right panel's title strip. Scrolls if there's too much to fit. */
 .right-body {
   flex: 1;
   display: flex;
@@ -762,6 +815,7 @@ onUnmounted(() => {
   overflow: auto;
 }
 
+/* The big text showing what you're working on during a session, centred in the panel. */
 .working-on {
   flex: 1;
   display: flex;
@@ -773,6 +827,7 @@ onUnmounted(() => {
   padding: 20px;
 }
 
+/* The small "Hive" / "Back" button in the right panel's title strip. */
 .hive-toggle {
   border: var(--outline-width) solid var(--color-ink);
   background: var(--color-panel);
@@ -783,11 +838,13 @@ onUnmounted(() => {
   cursor: pointer;
 }
 
+/* The list of the four snacks. Scrolls if the window is too short to fit them all. */
 .snack-list {
   flex: 1;
   overflow-y: auto;
 }
 
+/* One snack row: picture on the left, then the name, then how many minutes. */
 .snack-row {
   height: 144px;
   display: flex;
@@ -796,6 +853,7 @@ onUnmounted(() => {
   cursor: pointer;
 }
 
+/* The square box on the left of each row that holds the snack picture. */
 .snack-icon-cell {
   flex: 0 0 140px;
   height: 100%;
@@ -806,6 +864,7 @@ onUnmounted(() => {
   border-right: var(--outline-width) solid var(--color-ink);
 }
 
+/* The snack's name, in capitals. */
 .snack-name {
   flex: 1;
   padding: 0 16px;
@@ -813,16 +872,19 @@ onUnmounted(() => {
   font-size: 16px;
 }
 
+/* The "25 MIN" text on the right, in grey. */
 .snack-duration {
   padding: 0 16px;
   color: var(--color-text-muted);
   font-size: 14px;
 }
 
+/* The box with your all-time totals under the snack list, with a thick line on top. */
 .stats-box {
   border-top: var(--outline-width-thick) solid var(--color-ink);
 }
 
+/* One line in that box: the label on the left, the number pushed to the right. */
 .stats-row {
   display: flex;
   justify-content: space-between;
@@ -832,10 +894,12 @@ onUnmounted(() => {
   font-size: 13px;
 }
 
+/* No line under the very last row. */
 .stats-row:last-child {
   border-bottom: none;
 }
 
+/* The Hive: hexagons lined up in rows that wrap onto the next line when full. */
 .honeycomb {
   display: flex;
   flex-wrap: wrap;
@@ -843,11 +907,13 @@ onUnmounted(() => {
   padding: 16px;
 }
 
+/* The list of past sessions under the filters. Scrolls when it gets long. */
 .history-list {
   padding: 0 16px 16px;
   overflow-y: auto;
 }
 
+/* The row of filter boxes (date, description, snack, status). Wraps onto two lines if narrow. */
 .filter-row {
   display: flex;
   flex-wrap: wrap;
@@ -855,6 +921,7 @@ onUnmounted(() => {
   padding: 0 16px 12px;
 }
 
+/* The look of each filter box. */
 .filter-input {
   flex: 1;
   min-width: 90px;
@@ -865,12 +932,14 @@ onUnmounted(() => {
   font-size: 11px;
 }
 
+/* The grey "No sessions match." message. */
 .history-empty {
   color: var(--color-text-muted);
   font-size: 12px;
   padding: 8px 0;
 }
 
+/* One past session in the list: date, description, snack and status in a line. */
 .history-row {
   display: flex;
   gap: 8px;
@@ -879,26 +948,32 @@ onUnmounted(() => {
   font-size: 12px;
 }
 
+/* The date, in grey. */
 .history-date {
   color: var(--color-text-muted);
 }
 
+/* The description stretches to fill whatever space is left in the row. */
 .history-desc {
   flex: 1;
 }
 
+/* The snack name, in grey. */
 .history-snack {
   color: var(--color-text-muted);
 }
 
+/* "completed" is shown in green... */
 .history-status.completed {
   color: var(--color-dot-left);
 }
 
+/* ...and "cancelled" in pink-red. */
 .history-status.cancelled {
   color: var(--color-rose);
 }
 
+/* The see-through dark layer that covers the whole app behind a popup, with the popup centred on top. */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -909,6 +984,7 @@ onUnmounted(() => {
   z-index: 10;
 }
 
+/* The popup box itself (the "are you sure?" question). */
 .modal {
   background: var(--color-panel);
   border: var(--outline-width-thick) solid var(--color-ink);
@@ -920,12 +996,14 @@ onUnmounted(() => {
   text-align: center;
 }
 
+/* The row of buttons at the bottom of the popup. */
 .modal-actions {
   display: flex;
   gap: 12px;
   justify-content: center;
 }
 
+/* The look of each popup button. */
 .modal-actions button {
   border: var(--outline-width) solid var(--color-ink);
   background: var(--color-panel);
@@ -936,6 +1014,7 @@ onUnmounted(() => {
   font-size: 12px;
 }
 
+/* The "Cancel session" / "Skip break" button is pink so it stands out. */
 .modal-actions button.danger {
   background: var(--color-rose);
 }

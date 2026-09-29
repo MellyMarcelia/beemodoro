@@ -20,14 +20,18 @@ function containedSize(img: HTMLImageElement): { width: number; height: number }
 
 // Makes the copy of a snack picture. Called once the picture has loaded.
 export function prepareSnackDragImage(img: HTMLImageElement): void {
+  // Picture not loaded or not visible yet? Nothing to copy.
   if (!img.naturalWidth || !img.clientWidth) return
   const { width, height } = containedSize(img)
+  // Draw the picture onto a blank, invisible sheet at its on-screen size...
   const canvas = document.createElement('canvas')
   canvas.width = width
   canvas.height = height
   canvas.getContext('2d')?.drawImage(img, 0, 0, width, height)
+  // ...turn that sheet into a new picture...
   const image = new Image()
   image.src = canvas.toDataURL('image/png')
+  // ...and keep it for when you start dragging.
   cache.set(img, { image, width, height })
 }
 
@@ -35,7 +39,10 @@ export function prepareSnackDragImage(img: HTMLImageElement): void {
 // under your mouse.
 export function setSnackDragImage(event: DragEvent, img: HTMLImageElement): void {
   const prepared = cache.get(img)
+  // No copy ready yet? Let the normal drag happen instead.
   if (!prepared || !prepared.image.complete || !event.dataTransfer) return
+  // Work out where the picture's top-left corner is on screen (it's centred
+  // in its box), then how far your mouse is from that corner.
   const rect = img.getBoundingClientRect()
   const left = rect.left + (rect.width - prepared.width) / 2
   const top = rect.top + (rect.height - prepared.height) / 2

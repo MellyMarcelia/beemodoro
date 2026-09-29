@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { BeeMood } from '../../../shared/types'
+// The bee's little animations, one per mood.
 import beeFocus from '../assets/bee/bee-focus.webp'
 import beeHappy from '../assets/bee/bee-happy.webp'
 import beeHappy2 from '../assets/bee/bee-happy-2.webp'
@@ -20,6 +21,7 @@ const assetForMood: Partial<Record<BeeMood, string>> = {
   cancelled: beeSad
 }
 
+// The animation for the mood right now (nothing if there isn't one).
 const asset = computed(() => assetForMood[props.mood] ?? null)
 
 // What the bee says in its speech bubble for each mood.
@@ -38,6 +40,7 @@ const moodText: Record<BeeMood, string> = {
     <!-- Restart the animation from the beginning whenever the mood changes -->
     <img v-if="asset" :key="asset" :src="asset" class="bee-gif" :class="mood" alt="" />
 
+    <!-- The speech bubble with the bee's words -->
     <div class="speech-bubble">
       <span>{{ moodText[mood] }}</span>
     </div>
@@ -45,6 +48,7 @@ const moodText: Record<BeeMood, string> = {
 </template>
 
 <style scoped>
+/* The bee with its speech bubble underneath, both centred. */
 .bee-area {
   display: flex;
   flex-direction: column;
@@ -64,6 +68,7 @@ const moodText: Record<BeeMood, string> = {
   object-fit: contain;
 }
 
+/* The white speech bubble under the bee, with a thick dark outline. */
 .speech-bubble {
   position: relative;
   flex-shrink: 0;

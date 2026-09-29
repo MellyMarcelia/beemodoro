@@ -31,15 +31,19 @@ export type SessionStatus = 'running' | 'paused' | 'completed' | 'cancelled'
 
 // One focus session.
 export interface Session {
+  // Its unique number
   id: number
   snack: SnackType
   // How long the session is meant to last, in seconds (set when it starts)
   plannedSeconds: number
   // How many seconds you've actually focused so far (paused time not included)
   elapsedSeconds: number
+  // What you said you'd work on
   description: string
   status: SessionStatus
+  // When it started, like "2026-09-28 17:30:12" (in UTC, world standard time)
   startedAt: string
+  // When it ended, or null if it's still going
   endedAt: string | null
 }
 

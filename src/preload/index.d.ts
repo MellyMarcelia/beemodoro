@@ -21,6 +21,7 @@ interface BeemodoroApi {
   getStats: () => Promise<Stats>
 }
 
+// Tells the code editor that the screen can use window.electron and window.api.
 declare global {
   interface Window {
     electron: ElectronAPI

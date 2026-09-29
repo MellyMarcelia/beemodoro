@@ -1,3 +1,5 @@
+# Files Prettier (the auto-formatter) should leave alone: built output and
+# settings files that are formatted by hand.
 out
 dist
 pnpm-lock.yaml

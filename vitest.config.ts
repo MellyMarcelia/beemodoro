@@ -2,9 +2,9 @@ import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
 
-// Minimal Vitest config for renderer component tests. Mirrors the
-// '@renderer' alias from electron.vite.config.ts so tests can import
-// screens/components the same way the app does.
+// Settings for the automatic tests (run with "npm test"). Uses the same
+// '@renderer' shortcut as electron.vite.config.ts so tests can find files the
+// same way the app does.
 export default defineConfig({
   plugins: [vue()],
   resolve: {
@@ -13,6 +13,7 @@ export default defineConfig({
     }
   },
   test: {
+    // Pretend to be a web page, so screen code can be tested without opening a window.
     environment: 'jsdom'
   }
 })

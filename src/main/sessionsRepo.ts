@@ -35,11 +35,13 @@ export function createSession(
   input: NewSession,
   plannedSeconds: number
 ): Session {
+  // Add the new row. The ? marks get filled in, in order, by the values in .run(...).
   const result = db
     .prepare(
       'INSERT INTO sessions (snack, planned_seconds, elapsed_seconds, description, status) VALUES (?, ?, 0, ?, ?)'
     )
     .run(input.snack, plannedSeconds, input.description, 'running')
+  // Read the row straight back, so we get its new id and start time too.
   return getSessionById(db, result.lastInsertRowid as number)!
 }
 
@@ -108,6 +110,7 @@ export function getStats(db: Database.Database): {
   totalSessions: number
   totalFocusMinutes: number
 } {
+  // Count the finished sessions and add up their seconds in one go.
   const row = db
     .prepare<[], { total_sessions: number; total_seconds: number | null }>(
       "SELECT COUNT(*) AS total_sessions, SUM(elapsed_seconds) AS total_seconds FROM sessions WHERE status = 'completed'"
@@ -115,6 +118,7 @@ export function getStats(db: Database.Database): {
     .get()!
   return {
     totalSessions: row.total_sessions,
+    // No sessions yet means there's nothing to add up, so count it as 0.
     totalFocusMinutes: Math.round((row.total_seconds ?? 0) / 60)
   }
 }

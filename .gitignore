@@ -1,3 +1,6 @@
+# Files git should never save or upload: downloaded packages, built apps,
+# personal data, and editor clutter.
+
 # Dependencies
 node_modules/
 

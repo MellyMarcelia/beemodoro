@@ -1,3 +1,6 @@
+// Settings for TypeScript, the checker that catches type mistakes.
+// This file just points to the two real ones: tsconfig.node.json (backstage +
+// go-between) and tsconfig.web.json (the screen).
 {
   "files": [],
   "references": [{ "path": "./tsconfig.node.json" }, { "path": "./tsconfig.web.json" }]

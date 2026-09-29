@@ -7,9 +7,9 @@ import { SNACK_LABELS, SNACK_ORDER } from '../../../shared/types'
 // each snack and the break last. Tells App.vue "close" when you hit the X.
 defineEmits<{ close: [] }>()
 
-const vaultStatus = ref<VaultStatus | null>(null)
-const settings = ref<Settings | null>(null)
-const loadError = ref<string | null>(null)
+const vaultStatus = ref<VaultStatus | null>(null) // your vault folder, and whether it still exists
+const settings = ref<Settings | null>(null) // your snack + break lengths (empty until loaded)
+const loadError = ref<string | null>(null) // an error message to show if something goes wrong
 
 // Loads your current vault folder and lengths when the popup opens. If that
 // fails, show the error instead of a blank screen.
@@ -24,6 +24,7 @@ async function loadAll(): Promise<void> {
   }
 }
 
+// Load everything as soon as the popup appears.
 onMounted(loadAll)
 
 // Opens the folder picker. If you cancel, nothing changes.
@@ -40,11 +41,13 @@ async function chooseFolder(): Promise<void> {
 
 // These two save a new number as soon as you change it, but ignore anything
 // that isn't a real positive number (like 0, a negative, or an empty box).
+// Saves a new length for one snack.
 async function updateSnackDuration(snack: SnackType, minutes: number): Promise<void> {
   if (!Number.isFinite(minutes) || minutes <= 0) return
   settings.value = await window.api.setSnackDuration(snack, minutes)
 }
 
+// Saves a new break length.
 async function updateBreakMinutes(minutes: number): Promise<void> {
   if (!Number.isFinite(minutes) || minutes <= 0) return
   settings.value = await window.api.setBreakMinutes(minutes)
@@ -53,6 +56,7 @@ async function updateBreakMinutes(minutes: number): Promise<void> {
 
 <template>
   <div class="settings-panel">
+    <!-- Top row: title and the × close button -->
     <div class="settings-header">
       <span class="title">Settings</span>
       <button class="close-button" aria-label="Close settings" @click="$emit('close')">
@@ -60,6 +64,7 @@ async function updateBreakMinutes(minutes: number): Promise<void> {
       </button>
     </div>
 
+    <!-- A yellow warning, if needed: something broke, no folder picked yet, or the folder went missing -->
     <p v-if="loadError" class="warning-banner">Something went wrong: {{ loadError }}</p>
     <template v-else-if="vaultStatus">
       <p v-if="!vaultStatus.path" class="warning-banner">
@@ -70,12 +75,14 @@ async function updateBreakMinutes(minutes: number): Promise<void> {
       </p>
     </template>
 
+    <!-- Vault folder: shows the folder you picked and a button to pick another -->
     <div class="section">
       <p class="section-label">Obsidian vault folder</p>
       <p class="vault-path">{{ vaultStatus?.path ?? 'not chosen yet' }}</p>
       <button class="choose-button" @click="chooseFolder">Choose vault folder</button>
     </div>
 
+    <!-- One number box per snack. It saves when you click away or press Enter -->
     <div v-if="settings" class="section">
       <p class="section-label">Snack durations (minutes)</p>
       <div v-for="snack in SNACK_ORDER" :key="snack" class="duration-row">
@@ -89,6 +96,7 @@ async function updateBreakMinutes(minutes: number): Promise<void> {
       </div>
     </div>
 
+    <!-- The break length, saved the same way -->
     <div v-if="settings" class="section">
       <p class="section-label">Break length (minutes)</p>
       <input
@@ -102,6 +110,7 @@ async function updateBreakMinutes(minutes: number): Promise<void> {
 </template>
 
 <style scoped>
+/* The Settings popup box. If it's taller than the window, you can scroll inside it. */
 .settings-panel {
   background: var(--color-panel);
   border: var(--outline-width-thick) solid var(--color-ink);
@@ -114,18 +123,21 @@ async function updateBreakMinutes(minutes: number): Promise<void> {
   gap: 16px;
 }
 
+/* The top row: "Settings" on the left, the × close button on the right. */
 .settings-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
+/* The "Settings" title. */
 .title {
   text-transform: uppercase;
   font-size: 18px;
   letter-spacing: 0.02em;
 }
 
+/* The × close button: just the symbol, no box around it. */
 .close-button {
   border: none;
   background: transparent;
@@ -134,6 +146,7 @@ async function updateBreakMinutes(minutes: number): Promise<void> {
   color: var(--color-ink);
 }
 
+/* The pale yellow warning box (about the vault folder, or if something went wrong). */
 .warning-banner {
   background: #fff3d6;
   border: var(--outline-width) solid var(--color-ink);
@@ -141,6 +154,7 @@ async function updateBreakMinutes(minutes: number): Promise<void> {
   font-size: 12px;
 }
 
+/* Each section of the popup, with a thin line above it to separate it from the one before. */
 .section {
   display: flex;
   flex-direction: column;
@@ -149,12 +163,14 @@ async function updateBreakMinutes(minutes: number): Promise<void> {
   padding-top: 12px;
 }
 
+/* The small grey heading at the top of each section. */
 .section-label {
   text-transform: uppercase;
   font-size: 13px;
   color: var(--color-text-muted);
 }
 
+/* The box showing your vault folder. Long folder paths wrap onto the next line. */
 .vault-path {
   font-size: 12px;
   word-break: break-word;
@@ -163,6 +179,7 @@ async function updateBreakMinutes(minutes: number): Promise<void> {
   padding: 6px 8px;
 }
 
+/* The yellow "Choose vault folder" button. */
 .choose-button {
   align-self: flex-start;
   padding: 8px 16px;
@@ -174,6 +191,7 @@ async function updateBreakMinutes(minutes: number): Promise<void> {
   font-size: 12px;
 }
 
+/* One snack line: the name on the left, its number box on the right. */
 .duration-row {
   display: flex;
   align-items: center;
@@ -181,6 +199,7 @@ async function updateBreakMinutes(minutes: number): Promise<void> {
   font-size: 13px;
 }
 
+/* The small number boxes where you type the minutes. */
 .duration-row input,
 .section > input {
   width: 70px;
